@@ -1,0 +1,24 @@
+{
+  "name": "@automationcloud/request",
+  "version": "0.0.0",
+  "description": "An HTTP request client",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/automationcloud/request.git"
+  },
+  "keywords": [
+    "http",
+    "node-fetch",
+    "request"
+  ],
+  "author": "Automation Cloud",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/automationcloud/request/issues"
+  },
+  "homepage": "https://github.com/automationcloud/request#readme"
+}
