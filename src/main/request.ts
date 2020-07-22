@@ -41,15 +41,15 @@ export class Request {
             body = JSON.stringify(body);
         }
 
-        const { retryCount = 1 } = this.config.auth || {};
+        const retryConfig = { attempts: 1, delay: 1000, ...this.config.auth?.retryConfig || {} };
         let attempted = 0;
-        while (attempted < retryCount) {
+        while (attempted < retryConfig.attempts) {
             attempted += 1;
             const res = await this.send(method, url, { ...options, headers, body });
 
             if (!res.ok) {
                 if (this.shouldRetry(res.status)) {
-                    await new Promise(r => setTimeout(r, this.config.auth?.retryDelay || 1000));
+                    await new Promise(r => setTimeout(r, retryConfig.delay || 1000));
                     continue;
                 } else {
                     throw await this.createErrorFromResponse(method, url, res);
@@ -110,10 +110,10 @@ export class Request {
     }
 
     shouldRetry(status: number): boolean {
-        const { statusCodesToRetry } = this.config.auth || {};
+        const { statusCodesToRetry } = this.config.auth?.retryConfig || {};
         if (statusCodesToRetry) {
             for (const range of statusCodesToRetry) {
-                if (range[0] < status && status < range[1]) {
+                if (range[0] <= status && status <= range[1]) {
                     return true;
                 }
             }

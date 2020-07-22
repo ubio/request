@@ -23,8 +23,12 @@ export interface RequestConfig {
 
 export interface RequestAuthorization {
     getHeader(requestOptions?: any): Promise<string | null>;
-    retryCount?: number;
-    retryDelay?: number;
+    retryConfig?: AuthRetryConfig;
+}
+
+export interface AuthRetryConfig {
+    attempts?: number;
+    delay?: number;
     // The HTTP response status codes that will automatically be retried.
     // Defaults to: [[100, 199], [429, 429], [500, 599]]
     statusCodesToRetry?: number[][];

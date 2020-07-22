@@ -1,47 +1,50 @@
 import assert from 'assert';
-import fetch from 'node-fetch';
 import { URLSearchParams } from 'url';
-import { Exception } from '../exception';
-import { RequestAuthorization } from '../definitions';
+import { Request } from '../request';
+import { RequestAuthorization, AuthRetryConfig } from '../definitions';
 
-type GrantType = 'client_credentials' | 'refresh_token'; // 'authorization_code'
+export enum OAuth2GrantType {
+    CLIENT_CREDENTIALS = 'client_credentials',
+    REFRESH_TOKEN = 'refresh_token',
+}
+
 export interface OAuth2Params {
-    // required
+    // required if we want to enforce refreshing..
     clientId: string;
     tokenUrl: string;
-    grantType?: GrantType;
 
     // optional
     clientSecret?: string;
     refreshToken?: string;
-    // not manually set preferably
     accessToken?: string;
     expiresAt?: number;
-    // frontend only
-    // authUrl?: string;
-    // redirectUrl?: string;
-    // code?: string;
 }
 
-export class OAuth2 implements RequestAuthorization {
-    // not manually set preferably
-    grantType: GrantType;
+export class OAuth2 implements RequestAuthorization, OAuth2Params {
+    retryConfig: AuthRetryConfig;
+
     clientId: string;
     tokenUrl: string;
-
     clientSecret?: string;
     refreshToken?: string;
     accessToken?: string;
     expiresAt?: number;
 
-    constructor(params: OAuth2Params) {
-        this.grantType = params.grantType || 'client_credentials';
+    constructor(params: OAuth2Params, retryConfig?: AuthRetryConfig) {
         this.tokenUrl = params.tokenUrl;
         this.clientId = params.clientId;
         this.refreshToken = params.refreshToken;
         this.accessToken = params.accessToken;
         this.expiresAt = params.expiresAt;
         this.clientSecret = params.clientSecret;
+
+        const defaultRetryConfig = {
+            delay: 1000,
+            attempts: 5,
+            statusCodesToRetry: [[401, 401]]
+        };
+
+        this.retryConfig = retryConfig || defaultRetryConfig;
     }
 
     async getHeader(): Promise<string> {
@@ -54,100 +57,77 @@ export class OAuth2 implements RequestAuthorization {
          * if above fails or refreshToken is not available,
          *  -> check grant_type is client_credentials if it is, get the tokens
          *
-         * (optional) if the machine allows authorization_code grant type, open it, and do the stuff.
+         * note: do not handle authorization_code grant type
          */
 
-        if (this.accessToken && this.expiresAt && Date.now() < this.expiresAt) {
+        if (this.accessToken/*  && this.expiresAt && Date.now() < this.expiresAt */) {
             return `Bearer ${this.accessToken}`;
         }
+
 
         let tokens = null;
         if (this.refreshToken) {
             try {
-                //
-                tokens = await this.token({ refresh: true });
+                tokens = await this.requestToken(this.refreshToken);
             } catch (error) {
-                // log the failed attempts?
+                //todo: log the failed attempts
             }
         }
 
         if (tokens == null) {
-            tokens = await this.token();
+            tokens = await this.requestToken();
         }
 
-        this.setTokens(tokens);
+        //save tokens in case we want to reuse it
+        this.setToken(tokens);
 
         return `Bearer ${tokens.accessToken}`;
-
-        // not handling frontend-app yet.
     }
 
-    /* frontend app
-
-    async createTokenByCode(code: string, redirectUri: string) {
-        const params = {
-            'grant_type': 'authorization_code',
-            'client_id': this.clientId,
-            'redirect_uri': redirectUri,
-            code,
-        };
-        return await this.token();
-    }
-    */
-
-    async token(options: { refresh?: boolean; params?: any } = {}) {
-        const params = {
-            'grant_type': this.grantType,
+    async requestToken(refreshToken?: string) {
+        const params: { [k: string]: string } = {
+            'grant_type': OAuth2GrantType.CLIENT_CREDENTIALS,
             'client_id': this.clientId,
             'client_secret': this.clientSecret || '',
-            ...options.params || {}
-        } as any;
+        };
 
-        if (options.refresh) {
-            assertIsDefined(this.refreshToken);
-            params['grant_type'] = 'refresh_token';
-            params['refresh_token'] = this.refreshToken;
+        if (refreshToken) {
+            params['grant_type'] = OAuth2GrantType.REFRESH_TOKEN;
+            params['refresh_token'] = refreshToken;
         }
 
-        const res = await fetch(this.tokenUrl, {
-            method: 'POST',
+        const request = new Request({
+            baseUrl: this.tokenUrl,
+            jsonResponse: true,
+        });
+
+        const response = await request.post('/', {
             body: new URLSearchParams(params),
         });
 
-        const resBody = await res.json();
-
-        // revisit the error code
-        if (!res.ok) {
-            throw new Exception({
-                name: 'UnexpectedStatusError',
-                message: 'unexpected status code',
-                details: {
-                    status: res.status,
-                    ...resBody
-                },
-            });
-        }
-        return decodeTokenResponse(resBody);
+        return decodeTokenResponse(response);
     }
 
-    setTokens(tokens: Tokens) {
+    setToken(tokens: OAuth2Tokens) {
         this.accessToken = tokens.accessToken;
         this.expiresAt = Date.now() + (tokens.accessExpiresIn * 1000);
         this.refreshToken = tokens.refreshToken;
     }
 }
 
-export interface Tokens {
+export interface OAuth2Tokens {
     accessToken: string;
     accessExpiresIn: number;
     refreshToken: string;
 }
 
-function assertIsDefined<T>(val: T): asserts val is NonNullable<T>  {
-    assert(val != null, `Expected 'val' to be defined, but received ${val}`);
+export interface OAuth2TokenOptions {
+    OAuth2grantType: OAuth2GrantType;
+    refreshToken?: string;
 }
 
-function decodeTokenResponse(res: { [key: string]: any }): Tokens {
+
+function decodeTokenResponse(res: { [key: string]: any }): OAuth2Tokens {
     assertPropertyType(res, 'access_token', 'string');
     assertPropertyType(res, 'refresh_token', 'string');
     assertPropertyType(res, 'expires_in', 'number');
