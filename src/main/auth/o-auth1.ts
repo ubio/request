@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import OAuth1Helper from 'oauth-1.0a';
 import {
     RequestAuthorization,
- } from '../definitions';
+} from '../definitions';
 
 export enum OAuth1SignatureMethod {
     HMAC_SHA1 = 'HMAC-SHA1',

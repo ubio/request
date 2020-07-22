@@ -10,7 +10,7 @@
     "scripts": {
         "dev": "npm run clean && tsc -w",
         "lint": "eslint --ext=.js,.ts --cache .",
-        "test": "NODE_ENV=test mocha",
+        "test": "mocha",
         "clean": "rm -rf out",
         "compile": "npm run clean && tsc",
         "preversion": "npm run compile && npm run lint && npm run test",
