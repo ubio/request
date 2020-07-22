@@ -1,16 +1,16 @@
-import { RequestAuthorization } from '../definitions';
+import { RequestAuthorization, AuthRetryConfig, DEFAULT_AUTH_RETRY_CONFIG } from '../types';
 
 export class Basic implements RequestAuthorization {
-    username: string;
-    password: string;
-
-    constructor(params: BasicParams) {
-        this.username = params.username || '';
-        this.password = params.password || '';
+    params: BasicParams;
+    retryConfig: AuthRetryConfig;
+    constructor(params: BasicParams, retryConfig?: Partial<AuthRetryConfig>) {
+        this.params = params;
+        this.retryConfig = { ...DEFAULT_AUTH_RETRY_CONFIG, ...retryConfig };
     }
 
     async getHeader() {
-        const header = `${this.username}:${this.password}`;
+        const { username, password } = this.params;
+        const header = `${username}:${password}`;
         const authString = Buffer.from(header, 'utf8').toString('base64');
         return `Basic ${authString}`;
     }

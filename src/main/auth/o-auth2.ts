@@ -1,11 +1,17 @@
 import assert from 'assert';
 import { URLSearchParams } from 'url';
 import { Request } from '../request';
-import { RequestAuthorization, AuthRetryConfig } from '../definitions';
+import {
+    RequestAuthorization,
+    AuthRetryConfig,
+    DEFAULT_AUTH_RETRY_CONFIG,
+} from '../types';
 
 export enum OAuth2GrantType {
     CLIENT_CREDENTIALS = 'client_credentials',
     REFRESH_TOKEN = 'refresh_token',
+    AUTHORIZATION_CODE = 'authorization_code',
+    PASSWORD = 'password',
 }
 
 export interface OAuth2Params {
@@ -20,31 +26,17 @@ export interface OAuth2Params {
     expiresAt?: number;
 }
 
-export class OAuth2 implements RequestAuthorization, OAuth2Params {
+export class OAuth2 implements RequestAuthorization {
+    params: OAuth2Params;
     retryConfig: AuthRetryConfig;
 
-    clientId: string;
-    tokenUrl: string;
-    clientSecret?: string;
-    refreshToken?: string;
-    accessToken?: string;
-    expiresAt?: number;
-
-    constructor(params: OAuth2Params, retryConfig?: AuthRetryConfig) {
-        this.tokenUrl = params.tokenUrl;
-        this.clientId = params.clientId;
-        this.refreshToken = params.refreshToken;
-        this.accessToken = params.accessToken;
-        this.expiresAt = params.expiresAt;
-        this.clientSecret = params.clientSecret;
-
-        const defaultRetryConfig = {
-            delay: 1000,
-            attempts: 5,
-            statusCodesToRetry: [[401, 401]]
+    constructor(params: OAuth2Params, retryConfig?: Partial<AuthRetryConfig>) {
+        this.params = { ...params };
+        this.retryConfig = {
+            ...DEFAULT_AUTH_RETRY_CONFIG,
+            attempts: 3, // oauth2 would require retries to obtain token effectively
+            ...retryConfig
         };
-
-        this.retryConfig = retryConfig || defaultRetryConfig;
     }
 
     async getHeader(): Promise<string> {
@@ -59,16 +51,16 @@ export class OAuth2 implements RequestAuthorization, OAuth2Params {
          *
          * note: do not handle authorization_code grant type
          */
-
-        if (this.accessToken/*  && this.expiresAt && Date.now() < this.expiresAt */) {
-            return `Bearer ${this.accessToken}`;
+        const { accessToken, expiresAt, refreshToken } = this.params;
+        if (accessToken && expiresAt && Date.now() < expiresAt) {
+            return `Bearer ${accessToken}`;
         }
 
 
         let tokens = null;
-        if (this.refreshToken) {
+        if (refreshToken) {
             try {
-                tokens = await this.requestToken(this.refreshToken);
+                tokens = await this.requestToken(refreshToken);
             } catch (error) {
                 //todo: log the failed attempts
             }
@@ -85,10 +77,11 @@ export class OAuth2 implements RequestAuthorization, OAuth2Params {
     }
 
     async requestToken(refreshToken?: string) {
-        const params: { [k: string]: string } = {
+        const { clientId, clientSecret } = this.params;
+        const params: OAuth2TokenParams = {
             'grant_type': OAuth2GrantType.CLIENT_CREDENTIALS,
-            'client_id': this.clientId,
-            'client_secret': this.clientSecret || '',
+            'client_id': clientId,
+            'client_secret': clientSecret,
         };
 
         if (refreshToken) {
@@ -96,22 +89,28 @@ export class OAuth2 implements RequestAuthorization, OAuth2Params {
             params['refresh_token'] = refreshToken;
         }
 
+        return this.createToken(params);
+    }
+
+    async createToken(params: OAuth2TokenParams) {
+        const { tokenUrl } = this.params;
         const request = new Request({
-            baseUrl: this.tokenUrl,
+            baseUrl: tokenUrl,
             jsonResponse: true,
         });
 
+        const p = Object.entries(params).filter(([_k, v]) => v != null);
         const response = await request.post('/', {
-            body: new URLSearchParams(params),
+            body: new URLSearchParams(p),
         });
 
         return decodeTokenResponse(response);
     }
 
     setToken(tokens: OAuth2Tokens) {
-        this.accessToken = tokens.accessToken;
-        this.expiresAt = Date.now() + (tokens.accessExpiresIn * 1000);
-        this.refreshToken = tokens.refreshToken;
+        this.params.accessToken = tokens.accessToken;
+        this.params.expiresAt = Date.now() + (tokens.accessExpiresIn * 1000);
+        this.params.refreshToken = tokens.refreshToken;
     }
 }
 
@@ -121,9 +120,15 @@ export interface OAuth2Tokens {
     refreshToken: string;
 }
 
-export interface OAuth2TokenOptions {
-    OAuth2grantType: OAuth2GrantType;
-    refreshToken?: string;
+export interface OAuth2TokenParams {
+    grant_type: OAuth2GrantType;
+    refresh_token?: string;
+    client_id?: string;
+    client_secret?: string;
+    redirect_uri?: string;
+    code?: string;
+    username?: string;
+    password?: string;
 }
 
 

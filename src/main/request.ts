@@ -6,7 +6,7 @@ import {
     RequestConfig,
     RequestHeaders,
     NETWORK_ERRORS,
-} from './definitions';
+} from './types';
 
 export class Request {
     config: RequestConfig;

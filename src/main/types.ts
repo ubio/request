@@ -18,21 +18,28 @@ export interface RequestConfig {
     headers?: RequestHeaders;
     jsonBody?: boolean;
     jsonResponse?: boolean;
+    // mock fetch which can be used for testing
     fetchMock?(fullUrl: string, fetchOptions: any): Promise<Response>;
 }
 
 export interface RequestAuthorization {
     getHeader(requestOptions?: any): Promise<string | null>;
-    retryConfig?: AuthRetryConfig;
+    retryConfig: AuthRetryConfig;
 }
 
 export interface AuthRetryConfig {
-    attempts?: number;
-    delay?: number;
+    attempts: number;
+    delay: number;
     // The HTTP response status codes that will automatically be retried.
     // Defaults to: [[100, 199], [429, 429], [500, 599]]
-    statusCodesToRetry?: number[][];
+    statusCodesToRetry: number[][];
 }
+
+export const DEFAULT_AUTH_RETRY_CONFIG = {
+    attempts: 1,
+    delay: 1000,
+    statusCodesToRetry: [[401, 401]]
+};
 
 export const NETWORK_ERRORS = [
     'EAI_AGAIN',
