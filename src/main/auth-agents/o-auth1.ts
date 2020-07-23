@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import OAuth1Helper from 'oauth-1.0a';
-import { RequestAuthorization, AuthRetryConfig, DEFAULT_AUTH_RETRY_CONFIG } from '../types';
+import { AuthAgent } from '../types';
 
 export enum OAuth1SignatureMethod {
     HMAC_SHA1 = 'HMAC-SHA1',
@@ -9,15 +9,10 @@ export enum OAuth1SignatureMethod {
     PLAINTEXT = 'PLAINTEXT',
 }
 
-export class OAuth1 implements RequestAuthorization {
-    // required
-    retryConfig: AuthRetryConfig;
-    constructor(protected params: OAuth1Params, retryConfig?: Partial<AuthRetryConfig>) {
+export class OAuth1Agent implements AuthAgent {
+
+    constructor(protected params: OAuth1Params) {
         this.params = { ...params };
-        this.retryConfig = {
-            ...DEFAULT_AUTH_RETRY_CONFIG,
-            ...retryConfig
-        };
     }
 
     async getHeader(options: any): Promise<string> {
@@ -77,6 +72,8 @@ export class OAuth1 implements RequestAuthorization {
 
         return 'Authorization ' + header.Authorization;
     }
+
+    invalidate() {}
 }
 
 export interface OAuth1Params {

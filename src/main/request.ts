@@ -1,73 +1,96 @@
-import querystring from 'querystring';
-import fetch, { Response } from 'node-fetch';
+import nodeFetch, { Response } from 'node-fetch';
 import { Exception } from './exception';
 import {
     RequestOptions,
     RequestConfig,
     RequestHeaders,
-    NETWORK_ERRORS,
-    DEFAULT_AUTH_RETRY_CONFIG,
+    FetchOptions,
 } from './types';
+import { NoAuthAgent } from './auth-agents';
+
+export const NETWORK_ERRORS = [
+    'EAI_AGAIN',
+    'EHOSTDOWN',
+    'EHOSTUNREACH',
+    'ECONNABORTED',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'EPIPE'
+];
+
+export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
+    baseUrl: '',
+    auth: new NoAuthAgent(),
+    retryAttempts: 10,
+    retryDelay: 500,
+    statusCodesToRetry: [[401, 401], [429, 429], [500, 599]],
+    headers: {},
+    fetch: nodeFetch,
+};
 
 export class Request {
     config: RequestConfig;
 
-    constructor(config: RequestConfig) {
-        this.config = config;
+    constructor(options: Partial<RequestConfig>) {
+        this.config = {
+            ...DEFAULT_REQUEST_CONFIG,
+            ...options,
+        };
     }
 
     async get(url: string, options: RequestOptions = {}): Promise<any> {
-        return await this.sendRequest('get', url, options);
+        return await this.sendJson('get', url, options);
     }
 
     async post(url: string, options: RequestOptions = {}): Promise<any> {
-        return await this.sendRequest('post', url, options);
+        return await this.sendJson('post', url, options);
     }
 
     async put(url: string, options: RequestOptions = {}): Promise<any> {
-        return await this.sendRequest('put', url, options);
+        return await this.sendJson('put', url, options);
     }
 
     async delete(url: string, options: RequestOptions = {}): Promise<any> {
-        return await this.sendRequest('delete', url, options);
+        return await this.sendJson('delete', url, options);
     }
 
-    async sendRequest(method: string, url: string, options: RequestOptions = {}): Promise<Response | any> {
-        // Prepare body
-        let body = options.body || null;
-        const headers = options.headers || {};
-
-        if (this.config.jsonBody && body) {
-            headers['Content-Type'] = 'application/json';
-            body = JSON.stringify(body);
-        }
-
-        const res = await this.sendWithRetry(method, url, { ...options, headers, body });
-        if (res.status === 204) {
+    async sendJson(method: string, url: string, options: RequestOptions = {}): Promise<any> {
+        const { body, query, headers } = options;
+        const res = await this.sendWithRetry(method, url, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...headers,
+            },
+            query,
+            body: body ? JSON.stringify(body) : '',
+        });
+        const { status } = res;
+        if (status === 204) {
             // No response
             return null;
         }
-
-        if (this.config.jsonResponse) {
-            const json = await res.json();
-            return json;
+        if (!res.ok) {
+            throw await this.createErrorFromResponse(method, url, res);
         }
-
-        return res;
+        const json = await res.json();
+        return json;
     }
 
-    async sendWithRetry(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
-        const retryConfig = this.config.auth?.retryConfig || DEFAULT_AUTH_RETRY_CONFIG;
+    async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
+        return this.sendWithRetry(method, url, options);
+    }
 
+    protected async sendWithRetry(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
+        const { retryAttempts, retryDelay } = this.config;
         let attempted = 0;
         let lastError;
-        while (attempted < retryConfig.attempts) {
+        while (attempted < retryAttempts) {
             attempted += 1;
-            const res = await this.send(method, url, options);
+            const res = await this._send(method, url, options);
             if (!res.ok) {
                 if (this.shouldRetry(res.status)) {
-                    retryConfig.invalidate();
-                    await new Promise(r => setTimeout(r, retryConfig.delay));
+                    this.config.auth.invalidate();
+                    await new Promise(r => setTimeout(r, retryDelay));
                     continue;
                 } else {
                     lastError = this.createErrorFromResponse(method, url, res);
@@ -79,32 +102,26 @@ export class Request {
         throw lastError;
     }
 
-    async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
+    protected async _send(method: string, url: string, options: RequestOptions = {}) {
         const { baseUrl, auth } = this.config;
-        const headers = this.mergeHeaders(this.config.headers || {}, options.headers || {});
-        // Prepare URL
-        const qs = querystring.stringify(options.query || {});
-        const fullUrl = baseUrl + url + (qs ? '?' + qs : '');
-
         const { body } = options;
-        if (auth) {
-            const authorization = await auth.getHeader({ url, method, body });
-            headers.authorization = authorization || '';
-        }
+        const authorization = await auth.getHeader({ url, method, body }) ?? '';
+        const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
+        // Prepare URL
+        const qs = new URLSearchParams(Object.entries(options.query || {})).toString();
+        const fullUrl = baseUrl + url + (qs ? '?' + qs : '');
         // Send request
         return await this.fetchWithRetry(fullUrl, { method, headers, body });
     }
 
-    async fetchWithRetry(fullUrl: string, fetchOptions: any): Promise<Response> {
-        const { retryAttempts = 20, retryDelay = 1000, fetchMock } = this.config;
+    protected async fetchWithRetry(fullUrl: string, fetchOptions: FetchOptions): Promise<Response> {
+        const { retryAttempts, retryDelay } = this.config;
         let attempted = 0;
         let lastError = null;
         while (attempted < retryAttempts) {
             try {
                 attempted += 1;
-                if (fetchMock) {
-                    return await fetchMock(fullUrl, fetchOptions);
-                }
+                const { fetch } = this.config;
                 return await fetch(fullUrl, fetchOptions);
             } catch (e) {
                 if (NETWORK_ERRORS.includes(e.code)) {
@@ -118,8 +135,8 @@ export class Request {
         throw lastError;
     }
 
-    shouldRetry(status: number): boolean {
-        const { statusCodesToRetry } = this.config.auth?.retryConfig || {};
+    protected shouldRetry(status: number): boolean {
+        const { statusCodesToRetry } = this.config;
         if (statusCodesToRetry) {
             for (const range of statusCodesToRetry) {
                 if (range[0] <= status && status <= range[1]) {
@@ -127,7 +144,6 @@ export class Request {
                 }
             }
         }
-
         return false;
     }
 

@@ -1,11 +1,10 @@
-import { RequestAuthorization, AuthRetryConfig, DEFAULT_AUTH_RETRY_CONFIG } from '../types';
+import { AuthAgent } from '../types';
 
-export class Basic implements RequestAuthorization {
+export class BasicAuthAgent implements AuthAgent {
     params: BasicParams;
-    retryConfig: AuthRetryConfig;
-    constructor(params: BasicParams, retryConfig?: Partial<AuthRetryConfig>) {
+
+    constructor(params: BasicParams) {
         this.params = params;
-        this.retryConfig = { ...DEFAULT_AUTH_RETRY_CONFIG, ...retryConfig };
     }
 
     async getHeader() {
@@ -14,6 +13,8 @@ export class Basic implements RequestAuthorization {
         const authString = Buffer.from(header, 'utf8').toString('base64');
         return `Basic ${authString}`;
     }
+
+    invalidate() {}
 }
 
 export interface BasicParams {

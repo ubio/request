@@ -1,9 +1,9 @@
 import assert from 'assert';
-import { Basic } from '../../main/auth';
+import { BasicAuthAgent } from '../../main/auth-agents';
 
-describe('Auth.Basic', () => {
+describe('AuthAgent.Basic', () => {
     it('returns basic header', async () => {
-        const auth = new Basic({
+        const auth = new BasicAuthAgent({
             username: 'hello',
             password: 'world'
         });
