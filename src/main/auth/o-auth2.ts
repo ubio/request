@@ -22,8 +22,8 @@ export interface OAuth2Params {
     // optional
     clientSecret?: string;
     refreshToken?: string;
-    accessToken?: string;
-    expiresAt?: number;
+    accessToken?: string | null;
+    expiresAt?: number | null;
 }
 
 export class OAuth2 implements RequestAuthorization {
@@ -31,15 +31,25 @@ export class OAuth2 implements RequestAuthorization {
     retryConfig: AuthRetryConfig;
 
     constructor(params: OAuth2Params, retryConfig?: Partial<AuthRetryConfig>) {
+        const oAuth2DefaultRetryConfig: Partial<AuthRetryConfig> = {
+            attempts: 3,
+            invalidate: this.invalidate
+        };
+
         this.params = { ...params };
         this.retryConfig = {
             ...DEFAULT_AUTH_RETRY_CONFIG,
-            attempts: 3, // oauth2 would require retries to obtain token effectively
-            ...retryConfig
+            ...oAuth2DefaultRetryConfig, // oauth2 would require retries to obtain token effectively
+            ...retryConfig,
         };
     }
 
     async getHeader(): Promise<string> {
+        const accessToken = await this.getAccessToken();
+        return `Bearer ${accessToken}`;
+    }
+
+    async getAccessToken() {
         /** if access token available,
          *  -> check expiresAt, if not expired -> return it
          *
@@ -55,7 +65,6 @@ export class OAuth2 implements RequestAuthorization {
         if (accessToken && expiresAt && Date.now() < expiresAt) {
             return `Bearer ${accessToken}`;
         }
-
 
         let tokens = null;
         if (refreshToken) {
@@ -73,7 +82,7 @@ export class OAuth2 implements RequestAuthorization {
         //save tokens in case we want to reuse it
         this.setToken(tokens);
 
-        return `Bearer ${tokens.accessToken}`;
+        return tokens.accessToken;
     }
 
     async requestToken(refreshToken?: string) {
@@ -111,6 +120,11 @@ export class OAuth2 implements RequestAuthorization {
         this.params.accessToken = tokens.accessToken;
         this.params.expiresAt = Date.now() + (tokens.accessExpiresIn * 1000);
         this.params.refreshToken = tokens.refreshToken;
+    }
+
+    invalidate() {
+        this.params.accessToken = null;
+        this.params.expiresAt = null;
     }
 }
 

@@ -33,12 +33,14 @@ export interface AuthRetryConfig {
     // The HTTP response status codes that will automatically be retried.
     // Defaults to: [[100, 199], [429, 429], [500, 599]]
     statusCodesToRetry: number[][];
+    invalidate(): void;
 }
 
-export const DEFAULT_AUTH_RETRY_CONFIG = {
+export const DEFAULT_AUTH_RETRY_CONFIG: AuthRetryConfig = {
     attempts: 1,
-    delay: 1000,
-    statusCodesToRetry: [[401, 401]]
+    delay: 500,
+    statusCodesToRetry: [[401, 401]],
+    invalidate: () => {},
 };
 
 export const NETWORK_ERRORS = [

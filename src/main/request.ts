@@ -6,6 +6,7 @@ import {
     RequestConfig,
     RequestHeaders,
     NETWORK_ERRORS,
+    DEFAULT_AUTH_RETRY_CONFIG,
 } from './types';
 
 export class Request {
@@ -41,33 +42,41 @@ export class Request {
             body = JSON.stringify(body);
         }
 
-        const retryConfig = { attempts: 1, delay: 1000, ...this.config.auth?.retryConfig || {} };
+        const res = await this.sendWithRetry(method, url, { ...options, headers, body });
+        if (res.status === 204) {
+            // No response
+            return null;
+        }
+
+        if (this.config.jsonResponse) {
+            const json = await res.json();
+            return json;
+        }
+
+        return res;
+    }
+
+    async sendWithRetry(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
+        const retryConfig = this.config.auth?.retryConfig || DEFAULT_AUTH_RETRY_CONFIG;
+
         let attempted = 0;
+        let lastError;
         while (attempted < retryConfig.attempts) {
             attempted += 1;
-            const res = await this.send(method, url, { ...options, headers, body });
-
+            const res = await this.send(method, url, options);
             if (!res.ok) {
                 if (this.shouldRetry(res.status)) {
-                    await new Promise(r => setTimeout(r, retryConfig.delay || 1000));
+                    retryConfig.invalidate();
+                    await new Promise(r => setTimeout(r, retryConfig.delay));
                     continue;
                 } else {
-                    throw await this.createErrorFromResponse(method, url, res);
+                    lastError = this.createErrorFromResponse(method, url, res);
                 }
             }
-
-            if (res.status === 204) {
-                // No response
-                return null;
-            }
-
-            if (this.config.jsonResponse) {
-                const json = await res.json();
-                return json;
-            }
-
             return res;
         }
+
+        throw lastError;
     }
 
     async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
