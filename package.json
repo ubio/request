@@ -1,24 +1,53 @@
 {
-  "name": "@automationcloud/request",
-  "version": "0.0.0",
-  "description": "An HTTP request client",
-  "main": "index.js",
-  "scripts": {
-    "test": "npm run test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/automationcloud/request.git"
-  },
-  "keywords": [
-    "http",
-    "node-fetch",
-    "request"
-  ],
-  "author": "Automation Cloud",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/automationcloud/request/issues"
-  },
-  "homepage": "https://github.com/automationcloud/request#readme"
+    "name": "@automationcloud/request",
+    "version": "0.0.0",
+    "description": "An HTTP request client",
+    "main": "out/main/index.js",
+    "files": [
+        "out/main/**/*",
+        "out/bin/**/*"
+    ],
+    "scripts": {
+        "dev": "npm run clean && tsc -w",
+        "lint": "eslint --ext=.js,.ts --cache .",
+        "test": "mocha",
+        "clean": "rm -rf out",
+        "compile": "npm run clean && tsc",
+        "preversion": "npm run compile && npm run lint && npm run test",
+        "version": "npm run changelog && git add CHANGELOG.md",
+        "postversion": "npm publish --access public && git push origin master --tags"
+    },
+    "pre-commit": [
+        "lint"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/automationcloud/request.git"
+    },
+    "keywords": [
+        "http",
+        "node-fetch",
+        "request"
+    ],
+    "author": "ubio",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/automationcloud/request/issues"
+    },
+    "homepage": "https://github.com/automationcloud/request#readme",
+    "dependencies": {
+        "@types/node-fetch": "^2.5.3",
+        "node-fetch": "^2.6.0",
+        "oauth-1.0a": "^2.2.6"
+    },
+    "devDependencies": {
+        "@types/mocha": "^8.0.0",
+        "@typescript-eslint/eslint-plugin": "^3.3.0",
+        "@typescript-eslint/parser": "^3.3.0",
+        "eslint": "^6.8.0",
+        "eslint-config-recommended": "^4.1.0",
+        "mocha": "^7.2.0",
+        "pre-commit": "^1.2.2",
+        "typescript": "^3.9.7"
+    }
 }
