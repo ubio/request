@@ -2,9 +2,7 @@ import assert from 'assert';
 import { URLSearchParams } from 'url';
 import { Request } from '../request';
 import {
-    RequestAuthorization,
-    AuthRetryConfig,
-    DEFAULT_AUTH_RETRY_CONFIG,
+    AuthAgent,
 } from '../types';
 
 export enum OAuth2GrantType {
@@ -26,22 +24,11 @@ export interface OAuth2Params {
     expiresAt?: number | null;
 }
 
-export class OAuth2 implements RequestAuthorization {
+export class OAuth2Agent implements AuthAgent {
     params: OAuth2Params;
-    retryConfig: AuthRetryConfig;
 
-    constructor(params: OAuth2Params, retryConfig?: Partial<AuthRetryConfig>) {
-        const oAuth2DefaultRetryConfig: Partial<AuthRetryConfig> = {
-            attempts: 3,
-            invalidate: this.invalidate
-        };
-
+    constructor(params: OAuth2Params) {
         this.params = { ...params };
-        this.retryConfig = {
-            ...DEFAULT_AUTH_RETRY_CONFIG,
-            ...oAuth2DefaultRetryConfig, // oauth2 would require retries to obtain token effectively
-            ...retryConfig,
-        };
     }
 
     async getHeader(): Promise<string> {
@@ -105,11 +92,10 @@ export class OAuth2 implements RequestAuthorization {
         const { tokenUrl } = this.params;
         const request = new Request({
             baseUrl: tokenUrl,
-            jsonResponse: true,
         });
 
         const p = Object.entries(params).filter(([_k, v]) => v != null);
-        const response = await request.post('/', {
+        const response = await request.send('post', '/', {
             body: new URLSearchParams(p),
         });
 

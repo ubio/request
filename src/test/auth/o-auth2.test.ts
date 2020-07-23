@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { OAuth2 } from '../../main/auth';
+import { OAuth2Agent } from '../../main/auth';
 
 describe('Auth.OAuth2', () => {
     const baseParams = {
@@ -17,7 +17,7 @@ describe('Auth.OAuth2', () => {
 
     context('access token present', () => {
         it('returns given access token', async () => {
-            const oauth2 = new OAuth2({
+            const oauth2 = new OAuth2Agent({
                 ...baseParams,
                 accessToken: 'return-me-back',
                 expiresAt: Date.now() + 10000,
@@ -29,10 +29,10 @@ describe('Auth.OAuth2', () => {
     });
 
     context('accessToken not present, refreshToken present', () => {
-        let oauth2: OAuth2;
+        let oauth2: OAuth2Agent;
 
         beforeEach(async () => {
-            oauth2 = new OAuth2({
+            oauth2 = new OAuth2Agent({
                 ...baseParams,
                 refreshToken: 'i-am-refresh-token'
             });
@@ -51,10 +51,10 @@ describe('Auth.OAuth2', () => {
     });
 
     context('accessToken not present, refreshToken not present', () => {
-        let oauth2: OAuth2;
+        let oauth2: OAuth2Agent;
 
         beforeEach(async () => {
-            oauth2 = new OAuth2({
+            oauth2 = new OAuth2Agent({
                 ...baseParams,
                 clientSecret: 'i-am-secret'
             });
