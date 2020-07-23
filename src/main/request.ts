@@ -83,23 +83,20 @@ export class Request {
     protected async sendWithRetry(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
         const { retryAttempts, retryDelay } = this.config;
         let attempted = 0;
-        let lastError;
-        while (attempted < retryAttempts) {
+        while (true) {
             attempted += 1;
             const res = await this._send(method, url, options);
-            if (!res.ok) {
-                if (this.shouldRetry(res.status)) {
-                    this.config.auth.invalidate();
-                    await new Promise(r => setTimeout(r, retryDelay));
-                    continue;
-                } else {
-                    lastError = this.createErrorFromResponse(method, url, res);
-                }
+            if (!res.ok &&
+                attempted < retryAttempts &&
+                this.shouldRetry(res.status)
+            ) {
+                this.config.auth.invalidate();
+                await new Promise(r => setTimeout(r, retryDelay));
+                continue;
             }
+
             return res;
         }
-
-        throw lastError;
     }
 
     protected async _send(method: string, url: string, options: RequestOptions = {}) {
