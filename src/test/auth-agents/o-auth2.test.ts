@@ -1,7 +1,7 @@
 import assert from 'assert';
-import { OAuth2Agent } from '../../main/auth';
+import { OAuth2Agent } from '../../main/auth-agents';
 
-describe('Auth.OAuth2', () => {
+describe('AuthAgent.OAuth2', () => {
     const baseParams = {
         clientId: 'i-am-client',
         tokenUrl: 'http://example.com',

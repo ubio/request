@@ -1,3 +1,3 @@
 export * from './request';
-export * from './auth';
+export * from './auth-agents';
 export * from './types';

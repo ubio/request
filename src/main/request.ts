@@ -6,7 +6,7 @@ import {
     RequestHeaders,
     FetchOptions,
 } from './types';
-import { NoAuthAgent } from './auth';
+import { NoAuthAgent } from './auth-agents';
 
 export const NETWORK_ERRORS = [
     'EAI_AGAIN',
