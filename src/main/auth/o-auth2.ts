@@ -63,7 +63,7 @@ export class OAuth2 implements RequestAuthorization {
          */
         const { accessToken, expiresAt, refreshToken } = this.params;
         if (accessToken && expiresAt && Date.now() < expiresAt) {
-            return `Bearer ${accessToken}`;
+            return accessToken;
         }
 
         let tokens = null;
