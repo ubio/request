@@ -81,7 +81,7 @@ export class Request {
             try {
                 const res = await this.sendRaw(method, url, options);
                 if (!res.ok) {
-                    lastError = this.createErrorFromResponse(method, url, res);
+                    lastError = await this.createErrorFromResponse(method, url, res);
                     if (this.shouldRetry(res.status)) {
                         this.config.auth.invalidate();
                         await new Promise(r => setTimeout(r, retryDelay));
