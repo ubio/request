@@ -22,10 +22,14 @@ describe('Request', () => {
                     statusCodesToRetry: [[401, 401]],
                 });
 
-                const res = await request.send('get', '/');
-                assert.equal(res.status, 401);
-                assert.equal(testFetch.spy.called, true);
-                assert.equal(testFetch.spy.calledCount, retryAttempts);
+                try {
+                    const res = await request.send('get', '/');
+                    assert(!res, 'unexpected success');
+                } catch (error) {
+                    assert.equal(error.details.status, 401);
+                    assert.equal(testFetch.spy.called, true);
+                    assert.equal(testFetch.spy.calledCount, retryAttempts);
+                }
             });
 
             it('tries once if request is successful on first attempt', async () => {
