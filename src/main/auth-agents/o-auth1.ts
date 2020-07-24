@@ -28,17 +28,25 @@ export class OAuth1Agent implements AuthAgent {
             realm: this.params.realm
         });
 
+        const allData = {
+            oauth_callback: this.params.callback,
+            oauth_nonce: this.params.nonce,
+            oauth_timestamp: this.params.timestamp,
+            oauth_verifier: this.params.verifier
+        };
+
+        const data = {} as any;
+        for (const [k, v] of Object.entries(allData)) {
+            if (v != null) {
+                data[k] = v;
+            }
+        }
+
         const requestData = {
             url,
             method,
             includeBodyHash: false,
-            data: {
-                // These are conditionally filled in below
-                oauth_callback: this.params.callback,
-                oauth_nonce: this.params.nonce,
-                oauth_timestamp: this.params.timestamp,
-                oauth_verifier: this.params.verifier
-            } as any
+            data,
         };
 
         if (this.params.includeBodyHash &&
@@ -67,10 +75,10 @@ export class OAuth1Agent implements AuthAgent {
             }
         }
 
-        const data = oauth.authorize(requestData, token);
-        const header = oauth.toHeader(data);
+        const authData = oauth.authorize(requestData, token);
+        const header = oauth.toHeader(authData);
 
-        return 'Authorization ' + header.Authorization;
+        return header.Authorization;
     }
 
     invalidate() {}

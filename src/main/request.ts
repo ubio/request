@@ -104,12 +104,13 @@ export class Request {
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
         const { baseUrl, auth } = this.config;
-        const { body } = options;
-        const authorization = await auth.getHeader({ url, method, body }) ?? '';
-        const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
-        // Prepare URL
         const qs = new URLSearchParams(Object.entries(options.query || {})).toString();
         const fullUrl = baseUrl + url + (qs ? '?' + qs : '');
+        const { body } = options;
+
+        const authorization = await auth.getHeader({ url: fullUrl, method, body }) ?? '';
+        const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
+        // Prepare URL
         // Send request
         const { fetch } = this.config;
         return await fetch(fullUrl, { method, headers, body });
