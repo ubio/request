@@ -4,7 +4,6 @@ import {
     RequestOptions,
     RequestConfig,
     RequestHeaders,
-    FetchOptions,
 } from './types';
 import { NoAuthAgent } from './auth-agents';
 
@@ -56,7 +55,7 @@ export class Request {
 
     async sendJson(method: string, url: string, options: RequestOptions = {}): Promise<any> {
         const { body, query, headers } = options;
-        const res = await this.sendWithRetry(method, url, {
+        const res = await this.send(method, url, {
             headers: {
                 'Content-Type': 'application/json',
                 ...headers,
@@ -69,40 +68,41 @@ export class Request {
             // No response
             return null;
         }
-        if (!res.ok) {
-            throw await this.createErrorFromResponse(method, url, res);
-        }
         const json = await res.json();
         return json;
     }
 
     async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
-        return this.sendWithRetry(method, url, options);
-    }
-
-    protected async sendWithRetry(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
         const { retryAttempts, retryDelay } = this.config;
         let attempted = 0;
         let lastError;
         while (attempted < retryAttempts) {
             attempted += 1;
-            const res = await this._send(method, url, options);
-            if (!res.ok) {
-                if (this.shouldRetry(res.status)) {
-                    this.config.auth.invalidate();
+            try {
+                const res = await this.sendRaw(method, url, options);
+                if (!res.ok) {
+                    lastError = this.createErrorFromResponse(method, url, res);
+                    if (this.shouldRetry(res.status)) {
+                        this.config.auth.invalidate();
+                        await new Promise(r => setTimeout(r, retryDelay));
+                        continue;
+                    }
+                }
+                return res;
+            } catch (err) {
+                if (NETWORK_ERRORS.includes(err.code)) {
+                    lastError = err;
                     await new Promise(r => setTimeout(r, retryDelay));
                     continue;
                 } else {
-                    lastError = this.createErrorFromResponse(method, url, res);
+                    throw err;
                 }
             }
-            return res;
         }
-
         throw lastError;
     }
 
-    protected async _send(method: string, url: string, options: RequestOptions = {}) {
+    async sendRaw(method: string, url: string, options: RequestOptions = {}) {
         const { baseUrl, auth } = this.config;
         const { body } = options;
         const authorization = await auth.getHeader({ url, method, body }) ?? '';
@@ -111,28 +111,8 @@ export class Request {
         const qs = new URLSearchParams(Object.entries(options.query || {})).toString();
         const fullUrl = baseUrl + url + (qs ? '?' + qs : '');
         // Send request
-        return await this.fetchWithRetry(fullUrl, { method, headers, body });
-    }
-
-    protected async fetchWithRetry(fullUrl: string, fetchOptions: FetchOptions): Promise<Response> {
-        const { retryAttempts, retryDelay } = this.config;
-        let attempted = 0;
-        let lastError = null;
-        while (attempted < retryAttempts) {
-            try {
-                attempted += 1;
-                const { fetch } = this.config;
-                return await fetch(fullUrl, fetchOptions);
-            } catch (e) {
-                if (NETWORK_ERRORS.includes(e.code)) {
-                    lastError = e;
-                    await new Promise(r => setTimeout(r, retryDelay));
-                } else {
-                    throw e;
-                }
-            }
-        }
-        throw lastError;
+        const { fetch } = this.config;
+        return await fetch(fullUrl, { method, headers, body });
     }
 
     protected shouldRetry(status: number): boolean {
@@ -166,25 +146,41 @@ export class Request {
         res: Response,
     ): Promise<Error> {
         const responseText = await res.text();
+        const details = {
+            method,
+            url,
+            fullUrl: res.url,
+            status: res.status,
+        };
         try {
             const json = JSON.parse(responseText);
-            return new Exception({
+            const exception = new Exception({
                 name: json.name,
                 message: json.message,
-                details: json.details,
-            });
-        } catch (err) {
-            return new Exception({
-                name: 'InternalError',
-                message: 'The request cannot be processed',
                 details: {
-                    method,
-                    url,
-                    fullUrl: res.url,
-                    status: res.status,
+                    ...details,
+                    ...json.details ?? {},
+                },
+            });
+            Object.defineProperty(exception, 'response', {
+                value: res,
+                enumerable: false,
+            });
+            return exception;
+        } catch (err) {
+            const exception = new Exception({
+                name: 'RequestFailed',
+                message: `Request ${method} ${url} failed with ${res.status} ${res.statusText}`,
+                details: {
+                    ...details,
                     cause: err,
                 }
             });
+            Object.defineProperty(exception, 'response', {
+                value: res,
+                enumerable: false,
+            });
+            return exception;
         }
     }
 
