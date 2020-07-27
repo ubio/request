@@ -23,13 +23,15 @@ describe('Request', () => {
                 });
 
                 try {
-                    const res = await request.send('get', '/');
-                    assert(!res, 'unexpected success');
+                    await request.send('get', '/');
                 } catch (error) {
                     assert.equal(error.details.status, 401);
                     assert.equal(testFetch.spy.called, true);
                     assert.equal(testFetch.spy.calledCount, retryAttempts);
+                    return;
                 }
+                assert(false, 'unexpected success');
+
             });
 
             it('tries once if request is successful on first attempt', async () => {
@@ -55,10 +57,17 @@ describe('Request', () => {
                     statusCodesToRetry: [[401, 401]],
                 });
 
-                const res = await request.send('get', '/');
-                assert.equal(res.status, 500);
-                assert.equal(testFetch.spy.called, true);
-                assert.equal(testFetch.spy.calledCount, 1);
+                try {
+                    await request.send('get', '/');
+                } catch (error) {
+                    assert.equal(error.details.status, 500);
+                    assert.equal(testFetch.spy.called, true);
+                    assert.equal(testFetch.spy.calledCount, 1);
+
+                    return;
+                }
+
+                assert(false, 'unexpected success');
             });
         });
 
