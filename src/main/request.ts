@@ -161,7 +161,7 @@ export class Request {
                 message: json.message,
                 details: {
                     ...details,
-                    ...json.details ?? {},
+                    ...json ?? {},
                 },
             });
             Object.defineProperty(exception, 'response', {
