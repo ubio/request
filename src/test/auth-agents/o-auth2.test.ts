@@ -37,7 +37,7 @@ describe('AuthAgent.OAuth2', () => {
                 refreshToken: 'i-am-refresh-token'
             });
 
-            oauth2.requestToken = mockToken;
+            oauth2.createToken = mockToken;
         });
 
         it('refreshes new tokens with refreshToken', async () => {
@@ -59,7 +59,7 @@ describe('AuthAgent.OAuth2', () => {
                 clientSecret: 'i-am-secret'
             });
 
-            oauth2.requestToken = mockToken;
+            oauth2.createToken = mockToken;
         });
 
         it('requests new tokens with grant_type client_credentials', async () => {

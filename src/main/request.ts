@@ -61,7 +61,7 @@ export class Request {
                 ...headers,
             },
             query,
-            body: body ? JSON.stringify(body) : '',
+            body: body ? JSON.stringify(body) : null,
         });
         const { status } = res;
         if (status === 204) {
@@ -87,6 +87,7 @@ export class Request {
                         await new Promise(r => setTimeout(r, retryDelay));
                         continue;
                     }
+                    break;
                 }
                 return res;
             } catch (err) {
@@ -104,12 +105,13 @@ export class Request {
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
         const { baseUrl, auth } = this.config;
-        const { body } = options;
-        const authorization = await auth.getHeader({ url, method, body }) ?? '';
-        const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
-        // Prepare URL
         const qs = new URLSearchParams(Object.entries(options.query || {})).toString();
         const fullUrl = baseUrl + url + (qs ? '?' + qs : '');
+        const { body } = options;
+
+        const authorization = await auth.getHeader({ url: fullUrl, method, body }) ?? '';
+        const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
+        // Prepare URL
         // Send request
         const { fetch } = this.config;
         return await fetch(fullUrl, { method, headers, body });
@@ -155,11 +157,11 @@ export class Request {
         try {
             const json = JSON.parse(responseText);
             const exception = new Exception({
-                name: json.name,
+                name: json.name || res.statusText,
                 message: json.message,
                 details: {
                     ...details,
-                    ...json.details ?? {},
+                    ...json ?? {},
                 },
             });
             Object.defineProperty(exception, 'response', {

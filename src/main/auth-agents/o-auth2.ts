@@ -31,12 +31,12 @@ export class OAuth2Agent implements AuthAgent {
         this.params = { ...params };
     }
 
-    async getHeader(): Promise<string> {
+    async getHeader(): Promise<string | null> {
         const accessToken = await this.getAccessToken();
-        return `Bearer ${accessToken}`;
+        return accessToken ? `Bearer ${accessToken}` : null;
     }
 
-    async getAccessToken() {
+    async getAccessToken(): Promise<string | null> {
         /** if access token available,
          *  -> check expiresAt, if not expired -> return it
          *
@@ -62,17 +62,20 @@ export class OAuth2Agent implements AuthAgent {
             }
         }
 
-        if (tokens == null) {
+        if (tokens == null && this.params.clientSecret) {
             tokens = await this.requestToken();
         }
 
         //save tokens in case we want to reuse it
-        this.setToken(tokens);
+        if (tokens) {
+            this.setTokens(tokens);
+            return tokens.accessToken;
+        }
 
-        return tokens.accessToken;
+        return null;
     }
 
-    async requestToken(refreshToken?: string) {
+    protected async requestToken(refreshToken?: string) {
         const { clientId, clientSecret } = this.params;
         const params: OAuth2TokenParams = {
             'grant_type': OAuth2GrantType.CLIENT_CREDENTIALS,
@@ -99,13 +102,23 @@ export class OAuth2Agent implements AuthAgent {
             body: new URLSearchParams(p),
         });
 
-        return decodeTokenResponse(response);
+        const json = await response.json();
+        return decodeTokenResponse(json);
     }
 
-    setToken(tokens: OAuth2Tokens) {
-        this.params.accessToken = tokens.accessToken;
-        this.params.expiresAt = Date.now() + (tokens.accessExpiresIn * 1000);
-        this.params.refreshToken = tokens.refreshToken;
+    setTokens(tokens: Partial<OAuth2Tokens>) {
+        const {
+            accessToken,
+            accessExpiresIn,
+            refreshToken
+        } = tokens;
+        const expiresAt = accessExpiresIn ?
+            Date.now() + (accessExpiresIn * 1000) :
+            null;
+
+        this.params.accessToken = accessToken;
+        this.params.expiresAt = expiresAt;
+        this.params.refreshToken = refreshToken;
     }
 
     invalidate() {
