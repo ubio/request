@@ -19,12 +19,51 @@ describe('AuthAgent.OAuth2', () => {
         it('returns given access token', async () => {
             const oauth2 = new OAuth2Agent({
                 ...baseParams,
-                accessToken: 'return-me-back',
+                accessToken: 'hello-token',
                 expiresAt: Date.now() + 10000,
+                minValiditySeconds: 0,
             });
 
             const authorization = await oauth2.getHeader();
-            assert.equal(authorization, 'Bearer return-me-back');
+            assert.equal(authorization, 'Bearer hello-token');
+        });
+
+        it('does not return saved accessToken when expired', async () => {
+            const oauth2 = new OAuth2Agent({
+                ...baseParams,
+                accessToken: 'hello-token',
+                expiresAt: Date.now() - 10000,
+                minValiditySeconds: 0,
+            });
+
+            const authorization = await oauth2.getHeader();
+            assert.notEqual(authorization, 'Bearer hello-token');
+        });
+
+        context('token expires in 10 seconds', () => {
+            it('returns given token when minValiditySeconds = 5', async () => {
+                const oauth2 = new OAuth2Agent({
+                    ...baseParams,
+                    accessToken: 'hello-token',
+                    expiresAt: Date.now() + 10 * 1000,
+                    minValiditySeconds: 5,
+                });
+
+                const authorization = await oauth2.getHeader();
+                assert.equal(authorization, 'Bearer hello-token');
+            });
+
+            it('does not return give token when minValiditySeconds = 15', async () => {
+                const oauth2 = new OAuth2Agent({
+                    ...baseParams,
+                    accessToken: 'hello-token',
+                    expiresAt: Date.now() + 10 * 1000,
+                    minValiditySeconds: 15,
+                });
+
+                const authorization = await oauth2.getHeader();
+                assert.notEqual(authorization, 'Bearer hello-token');
+            });
         });
     });
 

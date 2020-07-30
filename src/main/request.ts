@@ -22,7 +22,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     auth: new NoAuthAgent(),
     retryAttempts: 10,
     retryDelay: 500,
-    statusCodesToRetry: [[401, 401], [429, 429], [500, 599]],
+    statusCodesToRetry: [[401, 401], [429, 429], [502, 503]],
     headers: {},
     fetch: nodeFetch,
 };
@@ -81,7 +81,7 @@ export class Request {
             try {
                 const res = await this.sendRaw(method, url, options);
                 if (!res.ok) {
-                    lastError = await this.createErrorFromResponse(method, url, res);
+                    lastError = await this.createErrorFromResponse(method, url, res, attempted);
                     if (this.shouldRetry(res.status)) {
                         this.config.auth.invalidate();
                         await new Promise(r => setTimeout(r, retryDelay));
@@ -146,6 +146,7 @@ export class Request {
         method: string,
         url: string,
         res: Response,
+        attempts: number = 1,
     ): Promise<Error> {
         const responseText = await res.text();
         const details = {
@@ -153,6 +154,7 @@ export class Request {
             url,
             fullUrl: res.url,
             status: res.status,
+            attempts,
         };
         try {
             const json = JSON.parse(responseText);
