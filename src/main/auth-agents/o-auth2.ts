@@ -22,6 +22,7 @@ export interface OAuth2Params {
     refreshToken?: string;
     accessToken?: string | null;
     expiresAt?: number | null;
+    minValiditySeconds?: number; // default: 5 * 60, margin for accessToken's expiresAt (expiresAt - minValiditySeconds)
 }
 
 export class OAuth2Agent implements AuthAgent {
@@ -48,8 +49,9 @@ export class OAuth2Agent implements AuthAgent {
          *
          * note: do not handle authorization_code grant type
          */
-        const { accessToken, expiresAt, refreshToken } = this.params;
-        if (accessToken && expiresAt && Date.now() < expiresAt) {
+        const { accessToken, refreshToken, expiresAt, minValiditySeconds = 5 * 60 } = this.params;
+        const usable = expiresAt != null && Date.now() < expiresAt - (minValiditySeconds * 1000);
+        if (accessToken && usable) {
             return accessToken;
         }
 
