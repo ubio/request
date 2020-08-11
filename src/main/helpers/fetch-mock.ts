@@ -1,50 +1,44 @@
 import { Response, ResponseInit } from 'node-fetch';
-import { FetchOptions } from '../types';
+import { FetchOptions, Fetch } from '../types';
 
-export class RequestMockFactory {
-    spy: RequestMockSpy;
+export function fetchMock (init?: ResponseInit, body: any = {}, error?: Error): FetchMock {
+    const spy = {
+        called: false,
+        calledCount: 0,
+        params: [] as FetchMockSpyParams[],
+    };
 
-    constructor() {
-        this.spy = {
-            called: false,
-            calledCount: 0,
-            params: []
-        };
-    }
+    const fn = (fullUrl: string, fetchOptions: FetchOptions): Promise<Response> => {
+        return new Promise((resolve, reject) => {
+            const responseInit = { status: 200, ...init };
+            spy.called = true;
+            spy.calledCount += 1;
+            spy.params.push({ fullUrl, fetchOptions });
+            if (error) {
+                return reject(error);
+            }
 
-    getFetchFn(init?: ResponseInit, body: any = {}, error?: Error) {
-        this.reset();
+            const res = new Response(JSON.stringify(body), responseInit);
+            resolve(res);
+        });
+    };
 
-        return (fullUrl: string, fetchOptions: FetchOptions): Promise<Response> => {
-            return new Promise((resolve, reject) => {
-                const responseInit = { status: 200, ...init };
-                this.spy.called = true;
-                this.spy.calledCount += 1;
-                this.spy.params.push({ fullUrl, fetchOptions });
-                if (error) {
-                    return reject(error);
-                }
+    fn.spy = spy;
 
-                const res = new Response(JSON.stringify(body), responseInit);
-                resolve(res);
-            });
-        };
-    }
+    return fn;
+}
 
-    reset() {
-        this.spy.called = false;
-        this.spy.calledCount = 0;
-        this.spy.params = [];
+export type FetchMock = Fetch & FetchMockSpy;
+
+export interface FetchMockSpy {
+    spy: {
+        called: boolean;
+        calledCount: number;
+        params: FetchMockSpyParams[];
     }
 }
 
-export interface RequestMockSpy {
-    called: boolean;
-    calledCount: number;
-    params: RequestMockSpyParams[];
-}
-
-export interface RequestMockSpyParams {
+export interface FetchMockSpyParams {
     fullUrl: string;
     fetchOptions: FetchOptions;
 }
