@@ -23,10 +23,14 @@ export interface RequestConfig {
     retryDelay: number;
     statusCodesToRetry: number[][];
     headers: RequestHeaders;
-    fetch(url: string, fetchOptions: FetchOptions): Promise<Response>;
+    fetch: Fetch;
 }
 
 export interface AuthAgent {
     getHeader(requestOptions?: any): Promise<string | null>;
     invalidate(): void;
+}
+
+export interface Fetch {
+    (fullUrl: string, options: FetchOptions): Promise<Response>;
 }
