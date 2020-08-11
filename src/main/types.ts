@@ -1,5 +1,4 @@
 import { Response } from 'node-fetch';
-import { FetchMock } from './helpers';
 
 export interface RequestHeaders {
     [key: string]: string;
@@ -24,7 +23,7 @@ export interface RequestConfig {
     retryDelay: number;
     statusCodesToRetry: number[][];
     headers: RequestHeaders;
-    fetch: Fetch | FetchMock,
+    fetch: Fetch;
 }
 
 export interface AuthAgent {
