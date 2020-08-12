@@ -6,6 +6,7 @@ import {
     RequestHeaders,
 } from './types';
 import { NoAuthAgent } from './auth-agents';
+import { filterUndefined } from './helpers/filter-undefined';
 
 export const NETWORK_ERRORS = [
     'EAI_AGAIN',
@@ -33,7 +34,7 @@ export class Request {
     constructor(options: Partial<RequestConfig>) {
         this.config = {
             ...DEFAULT_REQUEST_CONFIG,
-            ...options,
+            ...filterUndefined(options),
         };
     }
 
