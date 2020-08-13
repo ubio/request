@@ -4,6 +4,7 @@ import {
     RequestOptions,
     RequestConfig,
     RequestHeaders,
+    StatusCodeRanges,
 } from './types';
 import { NoAuthAgent } from './auth-agents';
 import { filterUndefined } from './helpers/filter-undefined';
@@ -23,9 +24,11 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     auth: new NoAuthAgent(),
     retryAttempts: 10,
     retryDelay: 500,
-    statusCodesToRetry: [[401, 401], [429, 429], [502, 503]],
+    statusCodesToRetry: [401, 429, [502, 503]],
+    statusCodeToInvalidateAuth: [401, 403],
     headers: {},
     fetch: nodeFetch,
+    onRetry: () => {},
 };
 
 export class Request {
@@ -78,22 +81,24 @@ export class Request {
         let attempted = 0;
         let lastError;
         while (attempted < retryAttempts) {
+            let shouldRetry = false;
             attempted += 1;
             try {
                 const res = await this.sendRaw(method, url, options);
                 if (!res.ok) {
-                    lastError = await this.createErrorFromResponse(method, url, res, attempted);
-                    if (this.shouldRetry(res.status)) {
+                    const invalidateAuth = this.matchStatusRange(res.status, this.config.statusCodeToInvalidateAuth);
+                    if (invalidateAuth) {
                         this.config.auth.invalidate();
-                        await new Promise(r => setTimeout(r, retryDelay));
-                        continue;
                     }
-                    break;
+                    shouldRetry = this.matchStatusRange(res.status, this.config.statusCodesToRetry);
+                    throw await this.createErrorFromResponse(method, url, res, attempted);
                 }
                 return res;
             } catch (err) {
-                if (NETWORK_ERRORS.includes(err.code)) {
+                const retry = shouldRetry || NETWORK_ERRORS.includes(err.code);
+                if (retry) {
                     lastError = err;
+                    await this.config.onRetry(err);
                     await new Promise(r => setTimeout(r, retryDelay));
                     continue;
                 } else {
@@ -106,25 +111,24 @@ export class Request {
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
         const { baseUrl, auth } = this.config;
+        // Prepare URL
         const qs = new URLSearchParams(Object.entries(options.query || {})).toString();
         const fullUrl = baseUrl + url + (qs ? '?' + qs : '');
         const { body } = options;
-
+        // Prepare auth & headers
         const authorization = await auth.getHeader({ url: fullUrl, method, body }) ?? '';
         const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
-        // Prepare URL
         // Send request
         const { fetch } = this.config;
         return await fetch(fullUrl, { method, headers, body });
     }
 
-    protected shouldRetry(status: number): boolean {
-        const { statusCodesToRetry } = this.config;
-        if (statusCodesToRetry) {
-            for (const range of statusCodesToRetry) {
-                if (range[0] <= status && status <= range[1]) {
-                    return true;
-                }
+    protected matchStatusRange(status: number, ranges: StatusCodeRanges): boolean {
+        for (const range of ranges) {
+            const match = typeof range === 'number' ? status === range :
+                range[0] <= status && status <= range[1];
+            if (match) {
+                return true;
             }
         }
         return false;

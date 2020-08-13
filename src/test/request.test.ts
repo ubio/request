@@ -23,14 +23,12 @@ describe('Request', () => {
 
                 try {
                     await request.send('get', '/');
+                    throw new Error('UnexpectedSuccess');
                 } catch (error) {
                     assert.equal(error.details.status, 401);
                     assert.equal(fetch.spy.called, true);
                     assert.equal(fetch.spy.calledCount, retryAttempts);
-                    return;
                 }
-                assert(false, 'unexpected success');
-
             });
 
             it('tries once if request is successful on first attempt', async () => {
@@ -60,15 +58,31 @@ describe('Request', () => {
 
                 try {
                     await request.send('get', '/');
+                    throw new Error('UnexpectedSuccess');
                 } catch (error) {
                     assert.equal(error.details.status, 500);
                     assert.equal(fetch.spy.called, true);
                     assert.equal(fetch.spy.calledCount, 1);
 
-                    return;
                 }
+            });
 
-                assert(false, 'unexpected success');
+            it('calls onRetry if specified', async () => {
+                let thrownError: any;
+                const fetch = fetchMock({ status: 401 });
+                const request = new Request({
+                    baseUrl: 'http://example.com',
+                    fetch,
+                    retryAttempts,
+                    retryDelay: 0,
+                    statusCodesToRetry: [401],
+                    onRetry: (err: Error) => {
+                        thrownError = err;
+                    },
+                });
+                await request.send('get', '/').catch(() => {});
+                assert.ok(thrownError);
+                assert.equal(thrownError.details.status, 401);
             });
         });
 
