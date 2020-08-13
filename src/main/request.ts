@@ -29,6 +29,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     headers: {},
     fetch: nodeFetch,
     onRetry: () => {},
+    onError: () => {},
 };
 
 export class Request {
@@ -95,13 +96,17 @@ export class Request {
                 }
                 return res;
             } catch (err) {
+                const status = err.res?.status;
+                const statusText = err.res?.statusText;
+                const info = { method, url, headers: options.headers ?? {}, status, statusText };
                 const retry = shouldRetry || NETWORK_ERRORS.includes(err.code);
                 if (retry) {
                     lastError = err;
-                    await this.config.onRetry(err);
+                    await this.config.onRetry(err, info);
                     await new Promise(r => setTimeout(r, retryDelay));
                     continue;
                 } else {
+                    await this.config.onError(err, info);
                     throw err;
                 }
             }

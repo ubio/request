@@ -25,7 +25,8 @@ export interface RequestConfig {
     statusCodeToInvalidateAuth: StatusCodeRanges;
     headers: RequestHeaders;
     fetch: Fetch;
-    onRetry: (err: Error) => void | Promise<void>;
+    onError: (err: Error, info: RequestErrorInfo) => void | Promise<void>;
+    onRetry: (err: Error, info: RequestErrorInfo) => void | Promise<void>;
 }
 
 export type StatusCodeRanges = Array<number | [number, number]>;
@@ -37,4 +38,12 @@ export interface AuthAgent {
 
 export interface Fetch {
     (fullUrl: string, options: FetchOptions): Promise<Response>;
+}
+
+export interface RequestErrorInfo {
+    method: string;
+    url: string;
+    headers: RequestHeaders;
+    status?: number;
+    statusText?: number;
 }
