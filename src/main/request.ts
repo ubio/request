@@ -98,7 +98,7 @@ export class Request {
                 const retry = shouldRetry || NETWORK_ERRORS.includes(err.code);
                 if (retry) {
                     lastError = err;
-                    this.config.onRetry(err);
+                    await this.config.onRetry(err);
                     await new Promise(r => setTimeout(r, retryDelay));
                     continue;
                 } else {
