@@ -24,7 +24,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     auth: new NoAuthAgent(),
     retryAttempts: 10,
     retryDelay: 500,
-    statusCodesToRetry: [401, 429, [502, 503]],
+    statusCodesToRetry: [401, 429, [502, 504]],
     statusCodeToInvalidateAuth: [401, 403],
     headers: {},
     fetch: nodeFetch,
