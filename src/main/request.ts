@@ -79,9 +79,10 @@ export class Request {
 
     async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
         const { retryAttempts, retryDelay } = this.config;
+        const attempts = retryAttempts < 1 ? 1 : retryAttempts + 1;
         let attempted = 0;
         let lastError;
-        while (attempted < retryAttempts) {
+        while (attempted < attempts) {
             let shouldRetry = false;
             attempted += 1;
             try {
@@ -171,6 +172,7 @@ export class Request {
             const exception = new Exception({
                 name: json.name || res.statusText,
                 message: json.message,
+                status: res.status,
                 details: {
                     ...details,
                     ...json ?? {},

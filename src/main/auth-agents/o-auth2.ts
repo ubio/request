@@ -98,12 +98,10 @@ export class OAuth2Agent implements AuthAgent {
 
     async createToken(params: OAuth2TokenParams) {
         const { tokenUrl } = this.params;
-        const request = new Request({
-            baseUrl: tokenUrl,
-        });
+        const request = new Request({});
 
         const p = Object.entries(params).filter(([_k, v]) => v != null);
-        const response = await request.send('post', '/', {
+        const response = await request.send('post', tokenUrl, {
             body: new URLSearchParams(p),
         });
 
