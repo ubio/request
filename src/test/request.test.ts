@@ -11,7 +11,7 @@ describe('Request', () => {
         context('config.retryAttempts = 3', () => {
             const retryAttempts = 3;
 
-            it('tries 3 times when status satisfies the range', async () => {
+            it('tries 4 times when status satisfies the range', async () => {
                 const fetch = fetchMock({ status: 401 });
                 const request = new Request({
                     baseUrl: 'http://example.com',
@@ -27,7 +27,7 @@ describe('Request', () => {
                 } catch (error) {
                     assert.equal(error.details.status, 401);
                     assert.equal(fetch.spy.called, true);
-                    assert.equal(fetch.spy.calledCount, retryAttempts);
+                    assert.equal(fetch.spy.calledCount, retryAttempts + 1);
                 }
             });
 
