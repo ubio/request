@@ -121,7 +121,9 @@ export class OAuth2Agent implements AuthAgent {
 
         this.params.accessToken = accessToken;
         this.params.expiresAt = expiresAt;
-        this.params.refreshToken = refreshToken;
+        if (refreshToken) {
+            this.params.refreshToken = refreshToken;
+        }
     }
 
     invalidate() {
@@ -133,7 +135,7 @@ export class OAuth2Agent implements AuthAgent {
 export interface OAuth2Tokens {
     accessToken: string;
     accessExpiresIn: number;
-    refreshToken: string;
+    refreshToken?: string;
 }
 
 export interface OAuth2TokenParams {
@@ -150,7 +152,7 @@ export interface OAuth2TokenParams {
 
 function decodeTokenResponse(res: { [key: string]: any }): OAuth2Tokens {
     assertPropertyType(res, 'access_token', 'string');
-    assertPropertyType(res, 'refresh_token', 'string');
+    assertPropertyType(res, 'refresh_token', 'string', true);
     assertPropertyType(res, 'expires_in', 'number');
     return {
         accessToken: res['access_token'],
