@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import nodeFetch, { Response } from 'node-fetch';
 import { Exception } from './exception';
 import {
@@ -123,17 +124,17 @@ export class Request extends EventEmitter {
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
         const { baseUrl, auth } = this.config;
-        // Prepare URL
-        const qs = new URLSearchParams(Object.entries(options.query || {})).toString();
-        const fullUrl = baseUrl + url + (qs ? '?' + qs : '');
+
+        const fullUrl = new URL(url, baseUrl || undefined);
+        fullUrl.search = new URLSearchParams(Object.entries(options.query || {})).toString();
         const { body } = options;
-        // Prepare auth & headers
-        const authorization = await auth.getHeader({ url: fullUrl, method, body }) ?? '';
+
+        const authorization = await auth.getHeader({ url: fullUrl.toString(), method, body }) ?? '';
         const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
-        // Send request
+
         const { fetch } = this.config;
         this.emit('beforeSend', { method, url, headers });
-        return await fetch(fullUrl, { method, headers, body });
+        return await fetch(fullUrl.toString(), { method, headers, body });
     }
 
     protected mergeHeaders(...headers: RequestHeaders[]) {
