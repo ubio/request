@@ -1,4 +1,3 @@
-import { URL } from 'url';
 import nodeFetch, { Response } from 'node-fetch';
 import { Exception } from './exception';
 import {
@@ -124,8 +123,8 @@ export class Request extends EventEmitter {
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
         const { baseUrl, auth } = this.config;
-
-        const fullUrl = new URL(url, baseUrl || undefined);
+        const base = (baseUrl && baseUrl.slice(-1) !== '/') ? `${baseUrl}/` : baseUrl;
+        const fullUrl = new URL(url[0] === '/' ? url.slice(1) : url, base || undefined);
         fullUrl.search = new URLSearchParams(Object.entries(options.query || {})).toString();
         const { body } = options;
 
