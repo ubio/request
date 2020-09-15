@@ -71,7 +71,7 @@ export class Request extends EventEmitter {
             body: body ? JSON.stringify(body) : null,
         });
         const { status } = res;
-        if (status === 204) {
+        if (status === 204 || res.headers.get('content-length') === '0') {
             // No response
             return null;
         }
