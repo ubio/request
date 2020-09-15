@@ -4,10 +4,10 @@ import {
     RequestOptions,
     RequestConfig,
     RequestHeaders,
-    StatusCodeRanges,
 } from './types';
 import { NoAuthAgent } from './auth-agents';
-import { filterUndefined } from './helpers/filter-undefined';
+import { filterUndefined } from './util/filter-undefined';
+import EventEmitter from 'eventemitter3';
 
 export const NETWORK_ERRORS = [
     'EAI_AGAIN',
@@ -24,18 +24,19 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     auth: new NoAuthAgent(),
     retryAttempts: 10,
     retryDelay: 500,
-    statusCodesToRetry: [401, 429, [502, 504]],
-    statusCodeToInvalidateAuth: [401, 403],
+    retryStatusCodes: [429, 500, 502, 503, 504],
+    authInvalidateStatusCodes: [401, 403],
+    authInvalidateInterval: 60000,
     headers: {},
     fetch: nodeFetch,
-    onRetry: () => {},
-    onError: () => {},
 };
 
-export class Request {
+export class Request extends EventEmitter {
     config: RequestConfig;
+    authInvalidatedAt: number = 0;
 
     constructor(options: Partial<RequestConfig>) {
+        super();
         this.config = {
             ...DEFAULT_REQUEST_CONFIG,
             ...filterUndefined(options),
@@ -78,21 +79,26 @@ export class Request {
     }
 
     async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
-        const { retryAttempts, retryDelay } = this.config;
-        const attempts = retryAttempts < 1 ? 1 : retryAttempts + 1;
+        const totalAttempts = Math.max(this.config.retryAttempts + 1, 1);
         let attempted = 0;
         let lastError;
-        while (attempted < attempts) {
-            let shouldRetry = false;
+        while (attempted < totalAttempts) {
             attempted += 1;
+            let shouldRetry = false;
+            let retryDelay = this.config.retryDelay;
             try {
                 const res = await this.sendRaw(method, url, options);
                 if (!res.ok) {
-                    const invalidateAuth = this.matchStatusRange(res.status, this.config.statusCodeToInvalidateAuth);
+                    const invalidateAuth = this.config.authInvalidateStatusCodes.includes(res.status);
                     if (invalidateAuth) {
+                        // Note: we only retry once, if auth was authenticated
+                        shouldRetry = (Date.now() - this.authInvalidatedAt) > this.config.authInvalidateInterval;
+                        this.authInvalidatedAt = Date.now();
+                        retryDelay = 0;
                         this.config.auth.invalidate();
+                    } else {
+                        shouldRetry = this.config.retryStatusCodes.includes(res.status);
                     }
-                    shouldRetry = this.matchStatusRange(res.status, this.config.statusCodesToRetry);
                     throw await this.createErrorFromResponse(method, url, res, attempted);
                 }
                 return res;
@@ -103,11 +109,11 @@ export class Request {
                 const retry = shouldRetry || NETWORK_ERRORS.includes(err.code);
                 if (retry) {
                     lastError = err;
-                    await this.config.onRetry(err, info);
+                    this.emit('retry', err, info);
                     await new Promise(r => setTimeout(r, retryDelay));
                     continue;
                 } else {
-                    await this.config.onError(err, info);
+                    this.emit('error', err, info);
                     throw err;
                 }
             }
@@ -126,18 +132,8 @@ export class Request {
         const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
         // Send request
         const { fetch } = this.config;
+        this.emit('beforeSend', { method, url, headers });
         return await fetch(fullUrl, { method, headers, body });
-    }
-
-    protected matchStatusRange(status: number, ranges: StatusCodeRanges): boolean {
-        for (const range of ranges) {
-            const match = typeof range === 'number' ? status === range :
-                range[0] <= status && status <= range[1];
-            if (match) {
-                return true;
-            }
-        }
-        return false;
     }
 
     protected mergeHeaders(...headers: RequestHeaders[]) {

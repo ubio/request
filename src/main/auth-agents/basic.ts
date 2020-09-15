@@ -14,7 +14,8 @@ export class BasicAuthAgent implements AuthAgent {
         return `Basic ${authString}`;
     }
 
-    invalidate() {}
+    invalidate() {
+    }
 }
 
 export interface BasicParams {
