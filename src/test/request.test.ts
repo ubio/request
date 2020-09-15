@@ -12,6 +12,7 @@ describe('Request', () => {
         it('retries specified times', async () => {
             const fetch = fetchMock({ status: 504 });
             const request = new Request({
+                baseUrl: 'http://example.com',
                 fetch,
                 retryAttempts,
                 retryDelay: 0,
@@ -31,6 +32,7 @@ describe('Request', () => {
         it('tries once if request is successful on first attempt', async () => {
             const fetch = fetchMock({ status: 204 });
             const request = new Request({
+                baseUrl: 'http://example.com',
                 fetch,
                 retryAttempts,
                 retryDelay: 0,
@@ -45,6 +47,7 @@ describe('Request', () => {
         it('tries once when status code is not in statusCodesToRetry range', async () => {
             const fetch = fetchMock({ status: 400 });
             const request = new Request({
+                baseUrl: 'http://example.com',
                 fetch,
                 retryAttempts,
                 retryDelay: 0,
@@ -72,7 +75,7 @@ describe('Request', () => {
                 retryStatusCodes: [504],
             });
             request.on('retry', err => thrownError = err);
-            await request.send('get', '/').catch(() => {});
+            await request.send('get', 'http://example.com').catch(() => {});
             assert.ok(thrownError);
             assert.equal(thrownError.details.status, 504);
         });
@@ -87,6 +90,7 @@ describe('Request', () => {
             const auth = new BearerAuthAgent({ token: 'token-says-hello' });
             fetch = fetchMock({ status: 200 });
             request = new Request({
+                baseUrl: 'http://example.com',
                 headers: { 'custom-header': 'hello-there' },
                 auth,
                 fetch,
@@ -135,7 +139,7 @@ describe('Request', () => {
                 authInvalidateStatusCodes: [401],
             });
             try {
-                await request.send('get', '/');
+                await request.send('get', 'http://example.com');
                 throw new Error('UnexpectedSuccess');
             } catch (error) {
                 assert.equal(invalidated, true);
