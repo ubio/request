@@ -67,7 +67,11 @@ export class OAuth2Agent implements AuthAgent {
     }
 
     invalidate() {
-        this.params.refreshToken = null;
+        if (this.params.clientSecret) {
+            // Only invalidate refresh token in client_credentials grant type can be used
+            // to obtain it; otherwise we keep it.
+            this.params.refreshToken = null;
+        }
         this.params.accessToken = null;
         this.params.expiresAt = null;
     }
