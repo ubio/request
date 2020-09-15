@@ -151,4 +151,43 @@ describe('Request', () => {
 
     });
 
+    describe('URL formatting', () => {
+        it('concatenates baseUrl with url as expected', async () => {
+            const fetch = fetchMock({ status: 200 });
+
+            const expectations = [
+                ['http://example.com:123/foo/bar', 'baz', 'http://example.com:123/foo/bar/baz'],
+                ['http://example.com:123/foo/bar', '/baz', 'http://example.com:123/foo/bar/baz'],
+                ['http://example.com:123/foo/bar/', 'baz', 'http://example.com:123/foo/bar/baz'],
+                ['http://example.com:123/foo/bar/', '/baz', 'http://example.com:123/foo/bar/baz'],
+            ];
+
+            for (const [base, url, full] of expectations) {
+                const request = new Request({ fetch, baseUrl: base });
+                await request.get(url);
+                assert.strictEqual(fetch.spy.params[0].fullUrl, full)
+            }
+        });
+
+        it('does not require baseUrl if url is absolute', async () => {
+            const fetch = fetchMock({ status: 200 });
+
+            const request = new Request({ fetch });
+            await request.get('http://example.com/foo/bar');
+            assert.strictEqual(fetch.spy.params[0].fullUrl, 'http://example.com/foo/bar')
+        });
+
+        it('throws on attempt to use invalid URL', async () => {
+            const fetch = fetchMock({ status: 200 });
+
+
+            try {
+                const request = new Request({ fetch });
+                await request.get('/foo/bar');
+                throw new Error('UnexpectedSuccess');
+            } catch (error) {
+                assert.strictEqual(fetch.spy.called, false);
+            }
+        });
+    })
 });
