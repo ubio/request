@@ -12,7 +12,8 @@ export class BearerAuthAgent implements AuthAgent {
         return token ? `${prefix} ${token}`: null;
     }
 
-    invalidate() {}
+    invalidate() {
+    }
 }
 
 export interface BearerAuthParams {

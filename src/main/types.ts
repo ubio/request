@@ -21,15 +21,12 @@ export interface RequestConfig {
     auth: AuthAgent;
     retryAttempts: number;
     retryDelay: number;
-    statusCodesToRetry: StatusCodeRanges;
-    statusCodeToInvalidateAuth: StatusCodeRanges;
+    retryStatusCodes: number[];
+    authInvalidateStatusCodes: number[];
+    authInvalidateInterval: number;
     headers: RequestHeaders;
     fetch: Fetch;
-    onError: (err: Error, info: RequestErrorInfo) => void | Promise<void>;
-    onRetry: (err: Error, info: RequestErrorInfo) => void | Promise<void>;
 }
-
-export type StatusCodeRanges = Array<number | [number, number]>;
 
 export interface AuthAgent {
     getHeader(requestOptions?: any): Promise<string | null>;

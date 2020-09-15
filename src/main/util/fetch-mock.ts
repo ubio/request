@@ -1,13 +1,12 @@
 import { Response, ResponseInit } from 'node-fetch';
 import { FetchOptions, Fetch } from '../types';
 
-export function fetchMock (init?: ResponseInit, body: any = {}, error?: Error): FetchMock {
+export function fetchMock(init?: ResponseInit, body: any = {}, error?: Error): FetchMock {
     const spy = {
         called: false,
         calledCount: 0,
         params: [] as FetchMockSpyParams[],
     };
-
     const fn = (fullUrl: string, fetchOptions: FetchOptions): Promise<Response> => {
         return new Promise((resolve, reject) => {
             const responseInit = { status: 200, ...init };
@@ -22,9 +21,7 @@ export function fetchMock (init?: ResponseInit, body: any = {}, error?: Error): 
             resolve(res);
         });
     };
-
     fn.spy = spy;
-
     return fn;
 }
 

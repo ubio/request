@@ -13,11 +13,8 @@ export enum OAuth2GrantType {
 }
 
 export interface OAuth2Params {
-    // required if we want to enforce refreshing..
     clientId: string;
     tokenUrl: string;
-
-    // optional
     clientSecret?: string;
     refreshToken?: string;
     accessToken?: string | null;
