@@ -8,12 +8,12 @@ export enum OAuth2GrantType {
     CLIENT_CREDENTIALS = 'client_credentials',
     REFRESH_TOKEN = 'refresh_token',
     AUTHORIZATION_CODE = 'authorization_code',
-    PASSWORD = 'password',
 }
 
 export interface OAuth2Params {
     clientId: string;
     tokenUrl: string;
+    grantType?: 'client_credentials' | 'refresh_token';
     clientSecret?: string;
     refreshToken?: string | null;
     accessToken?: string | null;
@@ -25,7 +25,10 @@ export class OAuth2Agent implements AuthAgent {
     params: OAuth2Params;
 
     constructor(params: OAuth2Params) {
-        this.params = { ...params };
+        this.params = {
+            grantType: 'client_credentials',
+            ...params,
+        };
     }
 
     async getHeader(): Promise<string | null> {
@@ -67,7 +70,7 @@ export class OAuth2Agent implements AuthAgent {
     }
 
     invalidate() {
-        if (this.params.clientSecret) {
+        if (this.params.grantType === 'client_credentials') {
             // Only invalidate refresh token in client_credentials grant type can be used
             // to obtain it; otherwise we keep it.
             this.params.refreshToken = null;
@@ -106,13 +109,14 @@ export class OAuth2Agent implements AuthAgent {
     }
 
     protected async tryRefreshToken() {
-        const { refreshToken, clientId } = this.params;
+        const { refreshToken, clientId, clientSecret } = this.params;
         if (!refreshToken) {
             return null;
         }
         const tokens = await this.createToken({
             'grant_type': OAuth2GrantType.REFRESH_TOKEN,
             'client_id': clientId,
+            'client_secret': clientSecret,
             'refresh_token': refreshToken,
         });
         this.setTokens(tokens);
