@@ -1,4 +1,3 @@
-import { URLSearchParams } from 'url';
 import { Request } from '../request';
 import { Fetch } from '../types';
 import fetch from '../fetch';

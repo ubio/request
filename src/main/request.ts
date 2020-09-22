@@ -65,7 +65,7 @@ export class Request extends EventEmitter {
         const { body, query, headers } = options;
         const res = await this.send(method, url, {
             headers: {
-                'Content-Type': 'application/json',
+                'content-type': 'application/json',
                 ...headers,
             },
             query,
@@ -124,18 +124,35 @@ export class Request extends EventEmitter {
     }
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
-        const { baseUrl, auth } = this.config;
-        const base = (baseUrl && baseUrl.slice(-1) !== '/') ? `${baseUrl}/` : baseUrl;
-        const fullUrl = new URL(url[0] === '/' ? url.slice(1) : url, base || undefined);
-        fullUrl.search = new URLSearchParams(Object.entries(options.query || {})).toString();
+        const { auth, fetch } = this.config;
         const { body } = options;
-
-        const authorization = await auth.getHeader({ url: fullUrl.toString(), method, body }) ?? '';
-        const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
-
-        const { fetch } = this.config;
+        const fullUrl = this.prepareUrl(url, options);
+        const authorization = await auth.getHeader({ url: fullUrl, method, body }) ?? '';
+        const headers = this.mergeHeaders(
+            { 'content-type': this.inferContentTypeFromBody(body) ?? '' },
+            this.config.headers || {},
+            { authorization },
+            options.headers || {});
         this.emit('beforeSend', { method, url, headers });
-        return await fetch(fullUrl.toString(), { method, headers, body });
+        return await fetch(fullUrl, { method, headers, body });
+    }
+
+    protected prepareUrl(url: string, options: RequestOptions): string {
+        const { baseUrl } = this.config;
+        const base = (baseUrl && baseUrl.slice(-1) !== '/') ? `${baseUrl}/` : baseUrl;
+        const parsedUrl = new URL(url[0] === '/' ? url.slice(1) : url, base || undefined);
+        parsedUrl.search = new URLSearchParams(Object.entries(options.query ?? {})).toString();
+        return parsedUrl.toString();
+    }
+
+    protected inferContentTypeFromBody(body: any): string | null {
+        switch (true) {
+            case body == null: return null;
+            case body instanceof URLSearchParams: return 'application/x-www-form-urlencoded';
+            case typeof body === 'object': return 'application/json';
+            case typeof body === 'string': return 'text/plain';
+            default: return null;
+        }
     }
 
     protected mergeHeaders(...headers: RequestHeaders[]) {
