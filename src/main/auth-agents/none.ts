@@ -1,6 +1,6 @@
-import { AuthAgent } from '../types';
+import { AuthAgent } from '../auth-agent';
 
-export class NoAuthAgent implements AuthAgent {
+export class NoAuthAgent extends AuthAgent {
 
     async getHeader() {
         return null;

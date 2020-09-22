@@ -1,4 +1,3 @@
-import nodeFetch, { Response } from 'node-fetch';
 import { Exception } from './exception';
 import {
     RequestOptions,
@@ -8,6 +7,7 @@ import {
 import { NoAuthAgent } from './auth-agents';
 import { filterUndefined } from './util/filter-undefined';
 import EventEmitter from 'eventemitter3';
+import fetch from './fetch';
 
 export const NETWORK_ERRORS = [
     'EAI_AGAIN',
@@ -28,7 +28,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     authInvalidateStatusCodes: [401, 403],
     authInvalidateInterval: 60000,
     headers: {},
-    fetch: nodeFetch,
+    fetch,
 };
 
 export class Request extends EventEmitter {
@@ -41,6 +41,8 @@ export class Request extends EventEmitter {
             ...DEFAULT_REQUEST_CONFIG,
             ...filterUndefined(options),
         };
+        this.config.auth.on('retry', (...args) => this.emit('retry', ...args));
+        this.config.auth.on('error', (...args) => this.emit('error', ...args));
     }
 
     async get(url: string, options: RequestOptions = {}): Promise<any> {

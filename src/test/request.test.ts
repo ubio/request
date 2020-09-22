@@ -4,6 +4,7 @@ import {
     BearerAuthAgent,
     fetchMock,
 } from '../main';
+import { AuthAgent } from '../main/auth-agent';
 
 describe('Request', () => {
     describe('retry', () => {
@@ -23,9 +24,9 @@ describe('Request', () => {
                 await request.send('get', '/');
                 throw new Error('UnexpectedSuccess');
             } catch (error) {
-                assert.equal(error.details.status, 504);
-                assert.equal(fetch.spy.called, true);
-                assert.equal(fetch.spy.calledCount, retryAttempts + 1);
+                assert.strictEqual(error.details.status, 504);
+                assert.strictEqual(fetch.spy.called, true);
+                assert.strictEqual(fetch.spy.calledCount, retryAttempts + 1);
             }
         });
 
@@ -40,8 +41,8 @@ describe('Request', () => {
             });
 
             await request.send('get', '/');
-            assert.equal(fetch.spy.called, true);
-            assert.equal(fetch.spy.calledCount, 1);
+            assert.strictEqual(fetch.spy.called, true);
+            assert.strictEqual(fetch.spy.calledCount, 1);
         });
 
         it('tries once when status code is not in statusCodesToRetry range', async () => {
@@ -58,9 +59,9 @@ describe('Request', () => {
                 await request.send('get', '/');
                 throw new Error('UnexpectedSuccess');
             } catch (error) {
-                assert.equal(error.details.status, 400);
-                assert.equal(fetch.spy.called, true);
-                assert.equal(fetch.spy.calledCount, 1);
+                assert.strictEqual(error.details.status, 400);
+                assert.strictEqual(fetch.spy.called, true);
+                assert.strictEqual(fetch.spy.calledCount, 1);
 
             }
         });
@@ -77,7 +78,7 @@ describe('Request', () => {
             request.on('retry', err => thrownError = err);
             await request.send('get', 'http://example.com').catch(() => {});
             assert.ok(thrownError);
-            assert.equal(thrownError.details.status, 504);
+            assert.strictEqual(thrownError.details.status, 504);
         });
 
     });
@@ -101,14 +102,14 @@ describe('Request', () => {
             await request.get('/hello');
 
             const { fetchOptions } = fetch.spy.params[0];
-            assert.equal(fetchOptions?.headers?.authorization, 'Bearer token-says-hello');
+            assert.strictEqual(fetchOptions?.headers?.authorization, 'Bearer token-says-hello');
         });
 
         it('overrides authorization when presents in options.headers', async () => {
             const headers = { authorization: 'Bearer new-token-that-overrides' };
             await request.get('/hello', { headers });
             const { fetchOptions } = fetch.spy.params[0];
-            assert.equal(fetchOptions?.headers?.authorization, headers.authorization);
+            assert.strictEqual(fetchOptions?.headers?.authorization, headers.authorization);
         });
 
         it('overrides config.headers when presents in options.headers', async () => {
@@ -117,7 +118,7 @@ describe('Request', () => {
             assert(fetch.spy.params[0]);
 
             const { fetchOptions } = fetch.spy.params[0]
-            assert.equal(fetchOptions?.headers?.['custom-header'], headers['custom-header']);
+            assert.strictEqual(fetchOptions?.headers?.['custom-header'], headers['custom-header']);
         });
     });
 
@@ -126,26 +127,23 @@ describe('Request', () => {
         it('invalidates auth once', async () => {
             let invalidated = false;
             const fetch = fetchMock({ status: 401 });
+            const auth = new (class extends AuthAgent {
+                async getHeader() { return null; }
+                invalidate() { invalidated = true; }
+            })();
             const request = new Request({
                 fetch,
-                auth: {
-                    async getHeader() {
-                        return null;
-                    },
-                    invalidate() {
-                        invalidated = true;
-                    },
-                },
+                auth,
                 authInvalidateStatusCodes: [401],
             });
             try {
                 await request.send('get', 'http://example.com');
                 throw new Error('UnexpectedSuccess');
             } catch (error) {
-                assert.equal(invalidated, true);
-                assert.equal(error.details.status, 401);
-                assert.equal(fetch.spy.called, true);
-                assert.equal(fetch.spy.calledCount, 2);
+                assert.strictEqual(invalidated, true);
+                assert.strictEqual(error.details.status, 401);
+                assert.strictEqual(fetch.spy.called, true);
+                assert.strictEqual(fetch.spy.calledCount, 2);
             }
         });
 

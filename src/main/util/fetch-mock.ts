@@ -1,5 +1,5 @@
-import { Response, ResponseInit } from 'node-fetch';
 import { FetchOptions, Fetch } from '../types';
+import Response from '../response';
 
 export function fetchMock(init?: ResponseInit, body: any = {}, error?: Error): FetchMock {
     const spy = {
@@ -16,7 +16,6 @@ export function fetchMock(init?: ResponseInit, body: any = {}, error?: Error): F
             if (error) {
                 return reject(error);
             }
-
             const res = new Response(JSON.stringify(body), responseInit);
             resolve(res);
         });
