@@ -1,4 +1,3 @@
-import nodeFetch, { Response } from 'node-fetch';
 import { Exception } from './exception';
 import {
     RequestOptions,
@@ -8,6 +7,7 @@ import {
 import { NoAuthAgent } from './auth-agents';
 import { filterUndefined } from './util/filter-undefined';
 import EventEmitter from 'eventemitter3';
+import fetch from './fetch';
 
 export const NETWORK_ERRORS = [
     'EAI_AGAIN',
@@ -28,7 +28,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     authInvalidateStatusCodes: [401, 403],
     authInvalidateInterval: 60000,
     headers: {},
-    fetch: nodeFetch,
+    fetch,
 };
 
 export class Request extends EventEmitter {
@@ -41,6 +41,8 @@ export class Request extends EventEmitter {
             ...DEFAULT_REQUEST_CONFIG,
             ...filterUndefined(options),
         };
+        this.config.auth.on('retry', (...args) => this.emit('retry', ...args));
+        this.config.auth.on('error', (...args) => this.emit('error', ...args));
     }
 
     async get(url: string, options: RequestOptions = {}): Promise<any> {
@@ -63,7 +65,7 @@ export class Request extends EventEmitter {
         const { body, query, headers } = options;
         const res = await this.send(method, url, {
             headers: {
-                'Content-Type': 'application/json',
+                'content-type': 'application/json',
                 ...headers,
             },
             query,
@@ -122,18 +124,35 @@ export class Request extends EventEmitter {
     }
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
-        const { baseUrl, auth } = this.config;
-        const base = (baseUrl && baseUrl.slice(-1) !== '/') ? `${baseUrl}/` : baseUrl;
-        const fullUrl = new URL(url[0] === '/' ? url.slice(1) : url, base || undefined);
-        fullUrl.search = new URLSearchParams(Object.entries(options.query || {})).toString();
+        const { auth, fetch } = this.config;
         const { body } = options;
-
-        const authorization = await auth.getHeader({ url: fullUrl.toString(), method, body }) ?? '';
-        const headers = this.mergeHeaders(this.config.headers || {}, { authorization }, options.headers || {});
-
-        const { fetch } = this.config;
+        const fullUrl = this.prepareUrl(url, options);
+        const authorization = await auth.getHeader({ url: fullUrl, method, body }) ?? '';
+        const headers = this.mergeHeaders(
+            { 'content-type': this.inferContentTypeFromBody(body) ?? '' },
+            this.config.headers || {},
+            { authorization },
+            options.headers || {});
         this.emit('beforeSend', { method, url, headers });
-        return await fetch(fullUrl.toString(), { method, headers, body });
+        return await fetch(fullUrl, { method, headers, body });
+    }
+
+    protected prepareUrl(url: string, options: RequestOptions): string {
+        const { baseUrl } = this.config;
+        const base = (baseUrl && baseUrl.slice(-1) !== '/') ? `${baseUrl}/` : baseUrl;
+        const parsedUrl = new URL(url[0] === '/' ? url.slice(1) : url, base || undefined);
+        parsedUrl.search = new URLSearchParams(Object.entries(options.query ?? {})).toString();
+        return parsedUrl.toString();
+    }
+
+    protected inferContentTypeFromBody(body: any): string | null {
+        switch (true) {
+            case body == null: return null;
+            case body instanceof URLSearchParams: return 'application/x-www-form-urlencoded';
+            case typeof body === 'object': return 'application/json';
+            case typeof body === 'string': return 'text/plain';
+            default: return null;
+        }
     }
 
     protected mergeHeaders(...headers: RequestHeaders[]) {

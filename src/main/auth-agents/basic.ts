@@ -1,9 +1,10 @@
-import { AuthAgent } from '../types';
+import { AuthAgent } from '../auth-agent';
 
-export class BasicAuthAgent implements AuthAgent {
+export class BasicAuthAgent extends AuthAgent {
     params: BasicParams;
 
     constructor(params: BasicParams) {
+        super();
         this.params = params;
     }
 

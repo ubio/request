@@ -1,6 +1,24 @@
 import crypto from 'crypto';
 import OAuth1Helper from 'oauth-1.0a';
-import { AuthAgent } from '../types';
+import { AuthAgent } from '../auth-agent';
+
+export interface OAuth1Params {
+    // required
+    consumerKey: string;
+    consumerSecret: string;
+    signatureMethod: OAuth1SignatureMethod;
+    // optional
+    tokenKey?: string;
+    tokenSecret?: string;
+    privateKey?: string; // when signatureMethod is RSA_SHA1
+    version?: string;
+    realm?: string;
+    callback?: string;
+    verifier?: string;
+    timestamp?: string;
+    nonce?: string;
+    includeBodyHash?: boolean;
+}
 
 export enum OAuth1SignatureMethod {
     HMAC_SHA1 = 'HMAC-SHA1',
@@ -9,10 +27,13 @@ export enum OAuth1SignatureMethod {
     PLAINTEXT = 'PLAINTEXT',
 }
 
-export class OAuth1Agent implements AuthAgent {
+export class OAuth1Agent extends AuthAgent {
 
     constructor(protected params: OAuth1Params) {
-        this.params = { ...params };
+        super();
+        this.params = {
+            ...params,
+        };
     }
 
     async getHeader(options: any): Promise<string> {
@@ -82,25 +103,6 @@ export class OAuth1Agent implements AuthAgent {
     }
 
     invalidate() {}
-}
-
-export interface OAuth1Params {
-    // required
-    consumerKey: string;
-    consumerSecret: string;
-    signatureMethod: OAuth1SignatureMethod;
-
-    // optional
-    tokenKey?: string;
-    tokenSecret?: string;
-    privateKey?: string; // when signatureMethod is RSA_SHA1
-    version?: string;
-    realm?: string;
-    callback?: string;
-    verifier?: string;
-    timestamp?: string;
-    nonce?: string;
-    includeBodyHash?: boolean;
 }
 
 // helpers

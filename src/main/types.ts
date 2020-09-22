@@ -1,4 +1,4 @@
-import { Response } from 'node-fetch';
+import { AuthAgent } from './auth-agent';
 
 export interface RequestHeaders {
     [key: string]: string;
@@ -26,11 +26,6 @@ export interface RequestConfig {
     authInvalidateInterval: number;
     headers: RequestHeaders;
     fetch: Fetch;
-}
-
-export interface AuthAgent {
-    getHeader(requestOptions?: any): Promise<string | null>;
-    invalidate(): void;
 }
 
 export interface Fetch {
