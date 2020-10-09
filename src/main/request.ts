@@ -188,45 +188,19 @@ export class Request extends EventEmitter {
         res: Response,
         attempts: number = 1,
     ): Promise<Error> {
-        const responseText = await res.text();
-        const details = {
-            method,
-            url,
-            fullUrl: res.url,
-            status: res.status,
-            attempts,
-        };
-        try {
-            const json = JSON.parse(responseText);
-            const exception = new Exception({
-                name: json.name || res.statusText,
-                message: json.message,
+        throw new Exception({
+            name: 'RequestFailed',
+            message: `Request with ${res.status} ${res.statusText}`,
+            details: {
+                method,
+                url,
                 status: res.status,
-                details: {
-                    ...details,
-                    ...json ?? {},
-                },
-            });
-            Object.defineProperty(exception, 'response', {
-                value: res,
-                enumerable: false,
-            });
-            return exception;
-        } catch (err) {
-            const exception = new Exception({
-                name: 'RequestFailed',
-                message: `Request ${method} ${url} failed with ${res.status} ${res.statusText}`,
-                details: {
-                    ...details,
-                    cause: err,
-                }
-            });
-            Object.defineProperty(exception, 'response', {
-                value: res,
-                enumerable: false,
-            });
-            return exception;
-        }
+                statusText: res.statusText,
+                responseHeaders: res.headers,
+                responseText: await res.text().catch(err => ({ ...err })),
+                attempts,
+            }
+        });
     }
 
 }
