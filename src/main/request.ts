@@ -19,7 +19,6 @@ import {
     RequestHeaders,
 } from './types';
 import { NoAuthAgent } from './auth-agents';
-import { filterUndefined } from './util/filter-undefined';
 import EventEmitter from 'eventemitter3';
 import fetch from './fetch';
 
@@ -53,7 +52,7 @@ export class Request extends EventEmitter {
         super();
         this.config = {
             ...DEFAULT_REQUEST_CONFIG,
-            ...filterUndefined(options),
+            ...options,
         };
         this.config.auth.on('retry', (...args) => this.emit('retry', ...args));
         this.config.auth.on('error', (...args) => this.emit('error', ...args));

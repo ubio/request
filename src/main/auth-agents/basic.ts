@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { AuthAgent } from '../auth-agent';
+import { toBase64 } from '../util/base64';
 
 export class BasicAuthAgent extends AuthAgent {
     params: BasicParams;
@@ -25,12 +26,11 @@ export class BasicAuthAgent extends AuthAgent {
     async getHeader() {
         const { username, password } = this.params;
         const header = `${username}:${password}`;
-        const authString = Buffer.from(header, 'utf8').toString('base64');
+        const authString = toBase64(header);
         return `Basic ${authString}`;
     }
 
-    invalidate() {
-    }
+    invalidate() {}
 }
 
 export interface BasicParams {

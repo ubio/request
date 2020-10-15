@@ -1,7 +1,7 @@
 {
     "name": "@automationcloud/request",
     "version": "2.2.0",
-    "description": "An HTTP request client",
+    "description": "An HTTP client",
     "author": "UBIO Limited <hello@ub.io>",
     "license": "Apache-2.0",
     "repository": {
@@ -19,16 +19,21 @@
     ],
     "main": "out/main/index.js",
     "files": [
+        "dist/*",
         "out/main/**/*",
         "out/bin/**/*"
     ],
+    "browser": {
+        "./src/main/auth-agents/o-auth1.ts": "./src/main/auth-agents/o-auth1-browser.ts"
+    },
     "scripts": {
         "dev": "npm run clean && tsc -w",
         "lint": "eslint --ext=.js,.ts --cache .",
         "test": "mocha",
         "clean": "rm -rf out",
         "compile": "npm run clean && tsc",
-        "preversion": "npm run compile && npm run lint && npm run test",
+        "build:browser": "NODE_ENV=production webpack",
+        "preversion": "npm run compile && npm run build:browser && npm run lint && npm run test",
         "postversion": "npm publish --access public && git push origin master --tags"
     },
     "pre-commit": [
@@ -48,6 +53,9 @@
         "eslint-config-recommended": "^4.1.0",
         "mocha": "^7.2.0",
         "pre-commit": "^1.2.2",
-        "typescript": "^3.9.7"
+        "ts-loader": "^8.0.5",
+        "typescript": "^3.9.7",
+        "webpack": "^5.1.1",
+        "webpack-cli": "^4.0.0"
     }
 }
