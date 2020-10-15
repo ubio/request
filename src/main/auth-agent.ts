@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import EventEmitter from 'eventemitter3';
-
-export abstract class AuthAgent extends EventEmitter {
+export abstract class AuthAgent {
     abstract getHeader(requestOptions?: any): Promise<string | null>;
     abstract invalidate(): void;
 }

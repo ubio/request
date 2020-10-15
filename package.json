@@ -24,7 +24,8 @@
         "out/bin/**/*"
     ],
     "browser": {
-        "./src/main/auth-agents/o-auth1.ts": "./src/main/auth-agents/o-auth1-browser.ts"
+        "./src/main/auth-agents/o-auth1.ts": "./src/main/auth-agents/o-auth1-browser.ts",
+        "./src/main/util/base64.ts": "./src/main/util/base64-browser.ts"
     },
     "scripts": {
         "dev": "npm run clean && tsc -w",
@@ -41,7 +42,6 @@
     ],
     "dependencies": {
         "@types/node-fetch": "^2.5.3",
-        "eventemitter3": "^4.0.7",
         "node-fetch": "^2.6.1",
         "oauth-1.0a": "^2.2.6"
     },

@@ -89,7 +89,7 @@ describe('Request', () => {
                 retryDelay: 0,
                 retryStatusCodes: [504],
             });
-            request.on('retry', err => thrownError = err);
+            request.onRetry = err => { thrownError = err };
             await request.send('get', 'http://example.com').catch(() => {});
             assert.ok(thrownError);
             assert.strictEqual(thrownError.details.status, 504);

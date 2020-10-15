@@ -46,7 +46,7 @@ export interface Fetch {
     (fullUrl: string, options: FetchOptions): Promise<Response>;
 }
 
-export interface RequestErrorInfo {
+export interface RequestDebugInfo {
     method: string;
     url: string;
     headers: RequestHeaders;
