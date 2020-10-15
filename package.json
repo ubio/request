@@ -24,6 +24,7 @@
         "out/bin/**/*"
     ],
     "browser": {
+        "./out/main/index.js": "./dist/request.js",
         "./src/main/auth-agents/o-auth1.ts": "./src/main/auth-agents/o-auth1-browser.ts",
         "./src/main/util/base64.ts": "./src/main/util/base64-browser.ts"
     },
