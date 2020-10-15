@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { FetchOptions, Fetch } from '../types';
+import Response from '../response';
 
 export function fetchMock(init?: ResponseInit, body: any = {}, error?: Error): FetchMock {
     const spy = {
