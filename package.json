@@ -35,7 +35,7 @@
         "compile": "npm run clean && tsc",
         "build:browser": "NODE_ENV=production webpack",
         "preversion": "npm run compile && npm run build:browser && npm run lint && npm run test",
-        "postversion": "npm publish --access public && git push origin master --tags"
+        "postversion": "npm publish --access public && git push origin main --tags"
     },
     "pre-commit": [
         "lint"
