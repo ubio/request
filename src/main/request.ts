@@ -17,10 +17,9 @@ import {
     RequestOptions,
     RequestConfig,
     RequestHeaders,
+    RequestDebugInfo,
 } from './types';
 import { NoAuthAgent } from './auth-agents';
-import { filterUndefined } from './util/filter-undefined';
-import EventEmitter from 'eventemitter3';
 import fetch from './fetch';
 
 export const NETWORK_ERRORS = [
@@ -45,18 +44,15 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     fetch,
 };
 
-export class Request extends EventEmitter {
+export class Request {
     config: RequestConfig;
     authInvalidatedAt: number = 0;
 
     constructor(options: Partial<RequestConfig>) {
-        super();
         this.config = {
             ...DEFAULT_REQUEST_CONFIG,
-            ...filterUndefined(options),
+            ...options,
         };
-        this.config.auth.on('retry', (...args) => this.emit('retry', ...args));
-        this.config.auth.on('error', (...args) => this.emit('error', ...args));
     }
 
     async get(url: string, options: RequestOptions = {}): Promise<any> {
@@ -121,15 +117,14 @@ export class Request extends EventEmitter {
             } catch (err) {
                 const status = err.res?.status;
                 const statusText = err.res?.statusText;
-                const info = { method, url, headers: options.headers ?? {}, status, statusText };
+                const info: RequestDebugInfo = { method, url, headers: options.headers ?? {}, status, statusText };
                 const retry = shouldRetry || NETWORK_ERRORS.includes(err.code);
                 if (retry) {
                     lastError = err;
-                    this.emit('retry', err, info);
+                    this.onRetry(err, info);
                     await new Promise(r => setTimeout(r, retryDelay));
                     continue;
                 } else {
-                    this.emit('error', err, info);
                     throw err;
                 }
             }
@@ -147,7 +142,6 @@ export class Request extends EventEmitter {
             this.config.headers || {},
             { authorization },
             options.headers || {});
-        this.emit('beforeSend', { method, url, headers });
         return await fetch(fullUrl, { method, headers, body });
     }
 
@@ -201,6 +195,12 @@ export class Request extends EventEmitter {
                 attempts,
             }
         });
+    }
+
+    onRetry(_error: Error, _info: RequestDebugInfo) {}
+
+    onError(error: Error, _info: RequestDebugInfo) {
+        throw error;
     }
 
 }

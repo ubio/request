@@ -54,8 +54,6 @@ export class OAuth2Agent extends AuthAgent {
     async createToken(params: OAuth2TokenParams) {
         const { tokenUrl, fetch } = this.params;
         const request = new Request({ fetch });
-        request.on('retry', (...args) => this.emit('retry', ...args));
-        request.on('error', (...args) => this.emit('error', ...args));
         const p = Object.entries(params).filter(([_k, v]) => v != null);
         const response = await request.send('post', tokenUrl, {
             body: new URLSearchParams(p),
