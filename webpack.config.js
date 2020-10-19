@@ -13,10 +13,10 @@ module.exports = {
     },
     resolve: {
         extensions: ['.ts', '.js'],
-
     },
     output: {
-        filename: 'request.js',
+        filename: 'request.umd.js',
         path: path.resolve(__dirname, 'dist'),
+        libraryTarget: 'umd'
     },
 };

@@ -24,7 +24,7 @@
         "out/bin/**/*"
     ],
     "browser": {
-        "./out/main/index.js": "./dist/request.js",
+        "./out/main/index.js": "./dist/request.umd.js",
         "./src/main/auth-agents/o-auth1.ts": "./src/main/auth-agents/o-auth1-browser.ts",
         "./src/main/util/base64.ts": "./src/main/util/base64-browser.ts"
     },
@@ -32,7 +32,7 @@
         "dev": "npm run clean && tsc -w",
         "lint": "eslint --ext=.js,.ts --cache .",
         "test": "mocha",
-        "clean": "rm -rf out",
+        "clean": "rm -rf out/ dist/",
         "compile": "npm run clean && tsc",
         "build:browser": "NODE_ENV=production webpack",
         "preversion": "npm run compile && npm run build:browser && npm run lint && npm run test",
