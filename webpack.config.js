@@ -17,6 +17,7 @@ module.exports = {
     output: {
         filename: 'request.umd.js',
         path: path.resolve(__dirname, 'dist'),
-        libraryTarget: 'umd'
+        library: 'AutomationCloud',
+        libraryTarget: 'umd',
     },
 };
