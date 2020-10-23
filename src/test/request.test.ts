@@ -201,5 +201,28 @@ describe('Request', () => {
                 assert.strictEqual(fetch.spy.called, false);
             }
         });
-    })
+    });
+
+    describe('onError', () => {
+        it('executes overridden onError function', async () => {
+            let thrownError: any;
+            let info: any;
+            const fetch = fetchMock({ status: 500 });
+            const request = new Request({
+                fetch,
+                retryAttempts: 0,
+                retryDelay: 0,
+            });
+            request.onError = (err, debugInfo) => {
+                thrownError = err;
+                info = debugInfo;
+                throw err;
+            };
+            await request.send('get', 'http://example.com').catch(() => {});
+            assert.ok(thrownError);
+            assert.ok(info);
+            assert.strictEqual(thrownError.details.status, 500);
+            assert.strictEqual(info.status, 500);
+        });
+    });
 });
