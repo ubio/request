@@ -204,7 +204,8 @@ describe('Request', () => {
     });
 
     describe('onError', () => {
-        it('executes overridden onError function', async () => {
+        it('emits error event', async () => {
+            let called = false;
             let thrownError: any;
             let info: any;
             const fetch = fetchMock({ status: 500 });
@@ -214,15 +215,14 @@ describe('Request', () => {
                 retryDelay: 0,
             });
             request.onError = (err, debugInfo) => {
+                called = true;
                 thrownError = err;
                 info = debugInfo;
-                throw err;
             };
             await request.send('get', 'http://example.com').catch(() => {});
-            assert.ok(thrownError);
-            assert.ok(info);
-            assert.strictEqual(thrownError.details.status, 500);
-            assert.strictEqual(info.status, 500);
+            assert.ok(called);
+            assert.strictEqual(thrownError?.details.status, 500);
+            assert.strictEqual(info?.status, 500);
         });
     });
 });

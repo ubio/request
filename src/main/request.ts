@@ -128,10 +128,12 @@ export class Request {
                     continue;
                 } else {
                     this.onError(err, info);
+                    throw err;
                 }
             }
         }
         this.onError(lastError, lastInfo!);
+        throw lastError;
     }
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
@@ -201,8 +203,6 @@ export class Request {
 
     onRetry(_error: Error, _info: RequestDebugInfo) {}
 
-    onError(error: Error, _info: RequestDebugInfo): never {
-        throw error;
-    }
+    onError(_error: Error, _info: RequestDebugInfo) {}
 
 }
