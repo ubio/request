@@ -94,6 +94,7 @@ export class Request {
         const totalAttempts = Math.max(this.config.retryAttempts + 1, 1);
         let attempted = 0;
         let lastError;
+        let lastInfo: RequestDebugInfo;
         while (attempted < totalAttempts) {
             attempted += 1;
             let shouldRetry = false;
@@ -115,21 +116,22 @@ export class Request {
                 }
                 return res;
             } catch (err) {
-                const status = err.res?.status;
-                const statusText = err.res?.statusText;
+                const status = err.details?.status;
+                const statusText = err.details?.statusText;
                 const info: RequestDebugInfo = { method, url, headers: options.headers ?? {}, status, statusText };
                 const retry = shouldRetry || NETWORK_ERRORS.includes(err.code);
                 if (retry) {
                     lastError = err;
+                    lastInfo = info;
                     this.onRetry(err, info);
                     await new Promise(r => setTimeout(r, retryDelay));
                     continue;
                 } else {
-                    throw err;
+                    this.onError(err, info);
                 }
             }
         }
-        throw lastError;
+        this.onError(lastError, lastInfo!);
     }
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
@@ -199,7 +201,7 @@ export class Request {
 
     onRetry(_error: Error, _info: RequestDebugInfo) {}
 
-    onError(error: Error, _info: RequestDebugInfo) {
+    onError(error: Error, _info: RequestDebugInfo): never {
         throw error;
     }
 
