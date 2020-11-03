@@ -188,7 +188,7 @@ export class Request {
     ): Promise<Error> {
         throw new Exception({
             name: 'RequestFailed',
-            message: `Request with ${res.status} ${res.statusText}`,
+            message: `Request failed with ${res.status} ${res.statusText}`,
             details: {
                 method,
                 url,
