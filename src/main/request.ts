@@ -35,9 +35,10 @@ export const NETWORK_ERRORS = [
 export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     baseUrl: '',
     auth: new NoAuthAgent(),
-    retryAttempts: 10,
+    retryAttempts: 4,
     retryDelay: 500,
-    retryStatusCodes: [429, 500, 502, 503, 504],
+    retryDelayIncrement: 500,
+    retryStatusCodes: [429, 502, 503, 504],
     authInvalidateStatusCodes: [401, 403],
     authInvalidateInterval: 60000,
     headers: {},
@@ -92,13 +93,11 @@ export class Request {
 
     async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
         const totalAttempts = Math.max(this.config.retryAttempts + 1, 1);
-        let attempted = 0;
         let lastError;
         let lastInfo: RequestDebugInfo;
-        while (attempted < totalAttempts) {
-            attempted += 1;
+        for (let i = 0; i < totalAttempts; i++) {
             let shouldRetry = false;
-            let retryDelay = this.config.retryDelay;
+            let retryDelay = this.config.retryDelay + this.config.retryDelayIncrement * i;
             try {
                 const res = await this.sendRaw(method, url, options);
                 if (!res.ok) {
@@ -112,7 +111,7 @@ export class Request {
                     } else {
                         shouldRetry = this.config.retryStatusCodes.includes(res.status);
                     }
-                    throw await this.createErrorFromResponse(method, url, res, attempted);
+                    throw await this.createErrorFromResponse(method, url, res);
                 }
                 return res;
             } catch (err) {
@@ -184,7 +183,6 @@ export class Request {
         method: string,
         url: string,
         res: Response,
-        attempts: number = 1,
     ): Promise<Error> {
         throw new Exception({
             name: 'RequestFailed',
@@ -196,7 +194,6 @@ export class Request {
                 statusText: res.statusText,
                 responseHeaders: res.headers,
                 responseText: await res.text().catch(err => ({ ...err })),
-                attempts,
             }
         });
     }

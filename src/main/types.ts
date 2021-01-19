@@ -35,6 +35,7 @@ export interface RequestConfig {
     auth: AuthAgent;
     retryAttempts: number;
     retryDelay: number;
+    retryDelayIncrement: number;
     retryStatusCodes: number[];
     authInvalidateStatusCodes: number[];
     authInvalidateInterval: number;
