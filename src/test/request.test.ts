@@ -31,6 +31,7 @@ describe('Request', () => {
                 fetch,
                 retryAttempts,
                 retryDelay: 0,
+                retryDelayIncrement: 10,
                 retryStatusCodes: [504],
             });
 
@@ -80,13 +81,14 @@ describe('Request', () => {
             }
         });
 
-        it('emits retry event', async () => {
+        it('invokes onRetry', async () => {
             let thrownError: any;
             const fetch = fetchMock({ status: 504 });
             const request = new Request({
                 fetch,
                 retryAttempts,
                 retryDelay: 0,
+                retryDelayIncrement: 10,
                 retryStatusCodes: [504],
             });
             request.onRetry = err => { thrownError = err };
