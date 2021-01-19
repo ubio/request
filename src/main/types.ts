@@ -24,6 +24,8 @@ export interface RequestOptions {
     headers?: RequestHeaders;
 }
 
+export type RequestSpec = { method: string, url: string } & RequestOptions;
+
 export interface FetchOptions {
     method?: string;
     body?: any;

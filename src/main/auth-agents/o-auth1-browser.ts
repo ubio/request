@@ -13,12 +13,19 @@
 // limitations under the License.
 
 import { AuthAgent } from '../auth-agent';
+import { Exception } from '../exception';
 
 export class OAuth1Agent extends AuthAgent {
 
     async getHeader(_options: any): Promise<string> {
-        throw new Error('This auth agent is not supported in browser environment.');
+        throw new AuthNotSupportedError();
     }
 
     invalidate() {}
+}
+
+export class AuthNotSupportedError extends Exception {
+    constructor() {
+        super('This auth agent is not supported in browser environment.');
+    }
 }

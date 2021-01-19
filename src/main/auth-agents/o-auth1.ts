@@ -15,6 +15,7 @@
 import crypto from 'crypto';
 import OAuth1Helper from 'oauth-1.0a';
 import { AuthAgent } from '../auth-agent';
+import { Exception } from '../exception';
 
 export interface OAuth1Params {
     // required
@@ -154,5 +155,7 @@ function hashFunction(signatureMethod: OAuth1SignatureMethod) {
         };
     }
 
-    throw new Error(`Invalid signature method ${signatureMethod}`);
+    throw new OAuth1Error(`Invalid signature method ${signatureMethod}`);
 }
+
+export class OAuth1Error extends Exception {}

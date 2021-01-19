@@ -18,6 +18,7 @@ import {
     RequestConfig,
     RequestHeaders,
     RequestDebugInfo,
+    RequestSpec,
 } from './types';
 import { NoAuthAgent } from './auth-agents';
 import fetch from './fetch';
@@ -99,7 +100,12 @@ export class Request {
             let shouldRetry = false;
             let retryDelay = this.config.retryDelay + this.config.retryDelayIncrement * i;
             try {
-                const res = await this.sendRaw(method, url, options);
+                const spec = await this.prepareRequestSpec(method, url, options);
+                const res = await this.config.fetch(spec.url, {
+                    method: spec.method,
+                    headers: spec.headers,
+                    body: spec.body,
+                });
                 if (!res.ok) {
                     const invalidateAuth = this.config.authInvalidateStatusCodes.includes(res.status);
                     if (invalidateAuth) {
@@ -111,7 +117,7 @@ export class Request {
                     } else {
                         shouldRetry = this.config.retryStatusCodes.includes(res.status);
                     }
-                    throw await this.createErrorFromResponse(method, url, res);
+                    throw await this.createErrorFromResponse(spec, res);
                 }
                 return res;
             } catch (err) {
@@ -136,7 +142,20 @@ export class Request {
     }
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
-        const { auth, fetch } = this.config;
+        const spec = await this.prepareRequestSpec(method, url, options);
+        return await this.config.fetch(spec.url, {
+            method: spec.method,
+            headers: spec.headers,
+            body: spec.body,
+        });
+    }
+
+    protected async prepareRequestSpec(
+        method: string,
+        url: string,
+        options: RequestOptions = {},
+    ): Promise<RequestSpec> {
+        const { auth } = this.config;
         const { body } = options;
         const fullUrl = this.prepareUrl(url, options);
         const authorization = await auth.getHeader({ url: fullUrl, method, body }) ?? '';
@@ -145,7 +164,12 @@ export class Request {
             this.config.headers || {},
             { authorization },
             options.headers || {});
-        return await fetch(fullUrl, { method, headers, body });
+        return {
+            method,
+            url: fullUrl,
+            headers,
+            body,
+        };
     }
 
     protected prepareUrl(url: string, options: RequestOptions): string {
@@ -179,27 +203,40 @@ export class Request {
         return result;
     }
 
-    protected async createErrorFromResponse(
-        method: string,
-        url: string,
-        res: Response,
-    ): Promise<Error> {
-        throw new Exception({
-            name: 'RequestFailed',
-            message: `Request failed with ${res.status} ${res.statusText}`,
-            details: {
-                method,
-                url,
-                status: res.status,
-                statusText: res.statusText,
-                responseHeaders: res.headers,
-                responseText: await res.text().catch(err => ({ ...err })),
-            }
-        });
+    protected async createErrorFromResponse(requestSpec: RequestSpec, res: Response): Promise<Error> {
+        return new RequestFailedError(requestSpec, res);
     }
 
     onRetry(_error: Error, _info: RequestDebugInfo) {}
 
     onError(_error: Error, _info: RequestDebugInfo) {}
+
+}
+
+export class RequestFailedError extends Exception {
+    response!: Response;
+
+    constructor(
+        requestSpec: RequestSpec,
+        response: Response,
+    ) {
+        super(`Request failed: ${response.status} ${response.statusText}`);
+        this.details = {
+            method: requestSpec.method,
+            url: requestSpec.url,
+            requestHeaders: requestSpec.headers,
+            status: response.status,
+            statusText: response.statusText,
+        };
+        // Attach non-enumerable details to prevent accidental serialization
+        Object.defineProperty(this, 'requestSpec', {
+            enumerable: false,
+            value: requestSpec,
+        });
+        Object.defineProperty(this, 'response', {
+            enumerable: false,
+            value: response,
+        });
+    }
 
 }
