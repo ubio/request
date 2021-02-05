@@ -93,6 +93,7 @@ export class Request {
     }
 
     async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
+        const { fetch } = this.config;
         const totalAttempts = Math.max(this.config.retryAttempts + 1, 1);
         let lastError;
         let lastInfo: RequestDebugInfo;
@@ -101,7 +102,7 @@ export class Request {
             let retryDelay = this.config.retryDelay + this.config.retryDelayIncrement * i;
             try {
                 const spec = await this.prepareRequestSpec(method, url, options);
-                const res = await this.config.fetch(spec.url, {
+                const res = await fetch(spec.url, {
                     method: spec.method,
                     headers: spec.headers,
                     body: spec.body,
@@ -143,7 +144,8 @@ export class Request {
 
     async sendRaw(method: string, url: string, options: RequestOptions = {}) {
         const spec = await this.prepareRequestSpec(method, url, options);
-        return await this.config.fetch(spec.url, {
+        const { fetch } = this.config;
+        return await fetch(spec.url, {
             method: spec.method,
             headers: spec.headers,
             body: spec.body,
