@@ -109,10 +109,11 @@ export class OAuth2Agent extends AuthAgent {
 
     protected async tryCachedAccessToken() {
         const { accessToken, expiresAt, minValiditySeconds = 5 * 60 } = this.params;
-        const accessTokenValid = expiresAt != null &&
-            expiresAt - minValiditySeconds * 1000 > Date.now();
-        if (accessToken && accessTokenValid) {
-            return accessToken;
+        if (accessToken) {
+            const valid = expiresAt == null || expiresAt - minValiditySeconds * 1000 > Date.now();
+            if (valid) {
+                return accessToken;
+            }
         }
         return null;
     }
