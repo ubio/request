@@ -25,8 +25,8 @@ export enum OAuth2GrantType {
 }
 
 export interface OAuth2Params {
-    clientId: string;
     tokenUrl: string;
+    clientId: string;
     clientSecret?: string;
     refreshToken?: string | null;
     accessToken?: string | null;
