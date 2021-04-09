@@ -30,9 +30,11 @@ export const NETWORK_ERRORS = [
     'ECONNABORTED',
     'ECONNREFUSED',
     'ECONNRESET',
-    'EPIPE'
+    'EPIPE',
+    // ERR_INTERNET_DISCONNECTED
 ];
 
+// TODO introduce logger
 export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     baseUrl: '',
     auth: new NoAuthAgent(),
@@ -41,14 +43,12 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     retryDelayIncrement: 500,
     retryStatusCodes: [429, 502, 503, 504],
     authInvalidateStatusCodes: [401, 403],
-    authInvalidateInterval: 60000,
     headers: {},
     fetch,
 };
 
 export class Request {
     config: RequestConfig;
-    authInvalidatedAt: number = 0;
 
     constructor(options: Partial<RequestConfig>) {
         this.config = {
@@ -92,6 +92,7 @@ export class Request {
         return json;
     }
 
+    // TODO simplify
     async send(method: string, url: string, options: RequestOptions = {}): Promise<Response> {
         const { fetch } = this.config;
         const totalAttempts = Math.max(this.config.retryAttempts + 1, 1);
@@ -111,8 +112,7 @@ export class Request {
                     const invalidateAuth = this.config.authInvalidateStatusCodes.includes(res.status);
                     if (invalidateAuth) {
                         // Note: we only retry once, if auth was authenticated
-                        shouldRetry = (Date.now() - this.authInvalidatedAt) > this.config.authInvalidateInterval;
-                        this.authInvalidatedAt = Date.now();
+                        shouldRetry = true;
                         retryDelay = 0;
                         this.config.auth.invalidate();
                     } else {
@@ -209,10 +209,9 @@ export class Request {
         return new RequestFailedError(requestSpec, res);
     }
 
+    // TODO remove, replace with logging
     onRetry(_error: Error, _info: RequestDebugInfo) {}
-
     onError(_error: Error, _info: RequestDebugInfo) {}
-
 }
 
 export class RequestFailedError extends Exception {

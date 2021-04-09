@@ -101,7 +101,7 @@ export class OAuth2Agent extends AuthAgent {
                     return accessToken;
                 }
             } catch (error) {
-                this.invalidate();
+                // TODO log
             }
         }
         return null;
@@ -123,20 +123,14 @@ export class OAuth2Agent extends AuthAgent {
         if (!refreshToken) {
             return null;
         }
-        try {
-            const tokens = await this.createToken({
-                'grant_type': OAuth2GrantType.REFRESH_TOKEN,
-                'client_id': clientId,
-                'client_secret': clientSecret,
-                'refresh_token': refreshToken,
-            });
-            this.setTokens(tokens);
-            return tokens.accessToken;
-        } catch (error) {
-            // Refresh token no longer valid
-            this.params.refreshToken = null;
-            throw error;
-        }
+        const tokens = await this.createToken({
+            'grant_type': OAuth2GrantType.REFRESH_TOKEN,
+            'client_id': clientId,
+            'client_secret': clientSecret,
+            'refresh_token': refreshToken,
+        });
+        this.setTokens(tokens);
+        return tokens.accessToken;
     }
 
     protected async tryClientSecret() {
