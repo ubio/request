@@ -111,7 +111,6 @@ export class Request {
                 if (!res.ok) {
                     const invalidateAuth = this.config.authInvalidateStatusCodes.includes(res.status);
                     if (invalidateAuth) {
-                        // Note: we only retry once, if auth was authenticated
                         shouldRetry = true;
                         retryDelay = 0;
                         this.config.auth.invalidate();
