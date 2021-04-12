@@ -40,7 +40,6 @@ export interface RequestConfig {
     retryDelayIncrement: number;
     retryStatusCodes: number[];
     authInvalidateStatusCodes: number[];
-    authInvalidateInterval: number;
     headers: RequestHeaders;
     fetch: Fetch;
 }

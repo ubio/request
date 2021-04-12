@@ -140,7 +140,7 @@ describe('Request', () => {
 
     describe('invalidate auth', () => {
 
-        it('invalidates auth once', async () => {
+        it('invalidates auth when specified status code is returned', async () => {
             let invalidated = false;
             const fetch = fetchMock({ status: 401 });
             const auth = new (class extends AuthAgent {
@@ -159,7 +159,6 @@ describe('Request', () => {
                 assert.strictEqual(invalidated, true);
                 assert.strictEqual(error.details.status, 401);
                 assert.strictEqual(fetch.spy.called, true);
-                assert.strictEqual(fetch.spy.calledCount, 2);
             }
         });
 
