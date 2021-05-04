@@ -50,7 +50,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
 export class Request {
     config: RequestConfig;
 
-    constructor(options: Partial<RequestConfig>) {
+    constructor(options: Partial<RequestConfig> = {}) {
         this.config = {
             ...DEFAULT_REQUEST_CONFIG,
             ...options,
