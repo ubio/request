@@ -1,6 +1,6 @@
 {
     "name": "@automationcloud/request",
-    "version": "3.3.2",
+    "version": "3.3.3",
     "description": "An HTTP client",
     "author": "UBIO Limited <hello@ub.io>",
     "license": "Apache-2.0",
