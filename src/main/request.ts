@@ -120,7 +120,7 @@ export class Request {
                     throw await this.createErrorFromResponse(spec, res);
                 }
                 return res;
-            } catch (err) {
+            } catch (err: any) {
                 const status = err.details?.status;
                 const statusText = err.details?.statusText;
                 const info: RequestDebugInfo = { method, url, headers: options.headers ?? {}, status, statusText };
@@ -205,38 +205,38 @@ export class Request {
     }
 
     protected async createErrorFromResponse(requestSpec: RequestSpec, res: Response): Promise<Error> {
-        return new RequestFailedError(requestSpec, res);
+        const details = await this.readErrorResponse(res);
+        return new RequestFailedError(requestSpec, res.status, details);
     }
 
     // TODO remove, replace with logging
     onRetry(_error: Error, _info: RequestDebugInfo) {}
     onError(_error: Error, _info: RequestDebugInfo) {}
+
+    protected async readErrorResponse(res: Response): Promise<any> {
+        let result = '<no response>';
+        try {
+            result = await res.text();
+            result = JSON.parse(result);
+        } catch (err) {}
+        return result;
+    }
 }
 
 export class RequestFailedError extends Exception {
-    response!: Response;
-
     constructor(
         requestSpec: RequestSpec,
-        response: Response,
+        status: number,
+        details: any,
     ) {
-        super(`Request failed: ${response.status} ${response.statusText}`);
+        const { url, method } = requestSpec;
+        super(`Request failed: ${status} ${method} ${url}`);
+        this.status = status;
         this.details = {
             method: requestSpec.method,
             url: requestSpec.url,
-            requestHeaders: requestSpec.headers,
-            status: response.status,
-            statusText: response.statusText,
+            status,
+            details,
         };
-        // Attach non-enumerable details to prevent accidental serialization
-        Object.defineProperty(this, 'requestSpec', {
-            enumerable: false,
-            value: requestSpec,
-        });
-        Object.defineProperty(this, 'response', {
-            enumerable: false,
-            value: response,
-        });
     }
-
 }

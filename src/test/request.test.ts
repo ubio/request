@@ -38,7 +38,7 @@ describe('Request', () => {
             try {
                 await request.send('get', '/');
                 throw new Error('UnexpectedSuccess');
-            } catch (error) {
+            } catch (error: any) {
                 assert.strictEqual(error.details.status, 504);
                 assert.strictEqual(fetch.spy.called, true);
                 assert.strictEqual(fetch.spy.calledCount, retryAttempts + 1);
@@ -73,7 +73,7 @@ describe('Request', () => {
             try {
                 await request.send('get', '/');
                 throw new Error('UnexpectedSuccess');
-            } catch (error) {
+            } catch (error: any) {
                 assert.strictEqual(error.details.status, 400);
                 assert.strictEqual(fetch.spy.called, true);
                 assert.strictEqual(fetch.spy.calledCount, 1);
@@ -155,7 +155,7 @@ describe('Request', () => {
             try {
                 await request.send('get', 'http://example.com');
                 throw new Error('UnexpectedSuccess');
-            } catch (error) {
+            } catch (error: any) {
                 assert.strictEqual(invalidated, true);
                 assert.strictEqual(error.details.status, 401);
                 assert.strictEqual(fetch.spy.called, true);
