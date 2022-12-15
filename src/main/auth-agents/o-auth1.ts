@@ -1,21 +1,7 @@
-// Copyright 2020 UBIO Limited
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 import crypto from 'crypto';
 import OAuth1Helper from 'oauth-1.0a';
+
 import { AuthAgent } from '../auth-agent';
-import { Exception } from '../exception';
 
 export interface OAuth1Params {
     // required
@@ -105,7 +91,7 @@ export class OAuth1Agent extends AuthAgent {
             if (signatureMethod === OAuth1SignatureMethod.RSA_SHA1) {
                 token.secret = privateKey;
                 // We override getSigningKey for RSA-SHA1 because we don't want ddo/oauth-1.0a to percentEncode the token
-                oauth.getSigningKey = function(tokenSecret: string) {
+                oauth.getSigningKey = function (tokenSecret: string) {
                     return tokenSecret || '';
                 };
             }
@@ -123,7 +109,7 @@ export class OAuth1Agent extends AuthAgent {
 // helpers
 function hashFunction(signatureMethod: OAuth1SignatureMethod) {
     if (signatureMethod === OAuth1SignatureMethod.HMAC_SHA1) {
-        return function(baseString: string, key: string): string {
+        return function (baseString: string, key: string): string {
             return crypto
                 .createHmac('sha1', key)
                 .update(baseString)
@@ -132,7 +118,7 @@ function hashFunction(signatureMethod: OAuth1SignatureMethod) {
     }
 
     if (signatureMethod === OAuth1SignatureMethod.HMAC_SHA256) {
-        return function(baseString: string, key: string): string {
+        return function (baseString: string, key: string): string {
             return crypto
                 .createHmac('sha256', key)
                 .update(baseString)
@@ -141,7 +127,7 @@ function hashFunction(signatureMethod: OAuth1SignatureMethod) {
     }
 
     if (signatureMethod === OAuth1SignatureMethod.RSA_SHA1) {
-        return function(baseString: string, privatekey: string): string {
+        return function (baseString: string, privatekey: string): string {
             return crypto
                 .createSign('RSA-SHA1')
                 .update(baseString)
@@ -150,7 +136,7 @@ function hashFunction(signatureMethod: OAuth1SignatureMethod) {
     }
 
     if (signatureMethod === OAuth1SignatureMethod.PLAINTEXT) {
-        return function(baseString: string): string {
+        return function (baseString: string): string {
             return baseString;
         };
     }
@@ -158,4 +144,6 @@ function hashFunction(signatureMethod: OAuth1SignatureMethod) {
     throw new OAuth1Error(`Invalid signature method ${signatureMethod}`);
 }
 
-export class OAuth1Error extends Exception {}
+export class OAuth1Error extends Error {
+    override name = this.constructor.name;
+}

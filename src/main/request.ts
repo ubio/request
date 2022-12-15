@@ -1,27 +1,12 @@
-// Copyright 2020 UBIO Limited
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-import { Exception } from './exception';
-import {
-    RequestOptions,
-    RequestConfig,
-    RequestHeaders,
-    RequestDebugInfo,
-    RequestSpec,
-} from './types';
 import { NoAuthAgent } from './auth-agents';
 import fetch from './fetch';
+import {
+    RequestConfig,
+    RequestDebugInfo,
+    RequestHeaders,
+    RequestOptions,
+    RequestSpec,
+} from './types';
 
 export const NETWORK_ERRORS = [
     'EAI_AGAIN',
@@ -34,7 +19,6 @@ export const NETWORK_ERRORS = [
     // ERR_INTERNET_DISCONNECTED
 ];
 
-// TODO introduce logger
 export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     baseUrl: '',
     auth: new NoAuthAgent(),
@@ -223,7 +207,12 @@ export class Request {
     }
 }
 
-export class RequestFailedError extends Exception {
+export class RequestFailedError extends Error {
+    override name = this.constructor.name;
+
+    status: number;
+    details: any;
+
     constructor(
         requestSpec: RequestSpec,
         status: number,

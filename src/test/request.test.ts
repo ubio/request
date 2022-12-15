@@ -1,22 +1,9 @@
-// Copyright 2020 UBIO Limited
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 import assert from 'assert';
+
 import {
-    Request,
     BearerAuthAgent,
     fetchMock,
+    Request,
 } from '../main';
 import { AuthAgent } from '../main/auth-agent';
 
@@ -46,7 +33,7 @@ describe('Request', () => {
         });
 
         it('tries once if request is successful on first attempt', async () => {
-            const fetch = fetchMock({ status: 204 });
+            const fetch = fetchMock({ status: 201 });
             const request = new Request({
                 baseUrl: 'http://example.com',
                 fetch,
@@ -91,7 +78,7 @@ describe('Request', () => {
                 retryDelayIncrement: 10,
                 retryStatusCodes: [504],
             });
-            request.onRetry = err => { thrownError = err };
+            request.onRetry = err => { thrownError = err; };
             await request.send('get', 'http://example.com').catch(() => {});
             assert.ok(thrownError);
             assert.strictEqual(thrownError.details.status, 504);
@@ -114,7 +101,7 @@ describe('Request', () => {
             });
         });
 
-        it('sets authorization by auth.getHeader when not present in options', async() => {
+        it('sets authorization by auth.getHeader when not present in options', async () => {
             await request.get('/hello');
 
             const { fetchOptions } = fetch.spy.params[0];
@@ -133,7 +120,7 @@ describe('Request', () => {
             await request.get('/hello', { headers });
             assert(fetch.spy.params[0]);
 
-            const { fetchOptions } = fetch.spy.params[0]
+            const { fetchOptions } = fetch.spy.params[0];
             assert.strictEqual(fetchOptions?.headers?.['custom-header'], headers['custom-header']);
         });
     });
@@ -178,7 +165,7 @@ describe('Request', () => {
             for (const [base, url, full] of expectations) {
                 const request = new Request({ fetch, baseUrl: base });
                 await request.get(url);
-                assert.strictEqual(fetch.spy.params[0].fullUrl, full)
+                assert.strictEqual(fetch.spy.params[0].fullUrl, full);
             }
         });
 
@@ -187,7 +174,7 @@ describe('Request', () => {
 
             const request = new Request({ fetch });
             await request.get('http://example.com/foo/bar');
-            assert.strictEqual(fetch.spy.params[0].fullUrl, 'http://example.com/foo/bar')
+            assert.strictEqual(fetch.spy.params[0].fullUrl, 'http://example.com/foo/bar');
         });
 
         it('throws on attempt to use invalid URL', async () => {
