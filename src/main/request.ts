@@ -135,6 +135,27 @@ export class Request {
         });
     }
 
+    async getFile(url: string, type: string, options: RequestOptions = {}) {
+        try {
+            const { body, query, headers } = options;
+            const res = await this.send('get', url, {
+                headers: {
+                    'content-type': type,
+                    ...headers,
+                },
+                query,
+                body: body ? JSON.stringify(body) : null,
+            });
+            const { status } = res;
+            if (status === 204 || res.headers.get('content-length') === '0') {
+                return null;
+            }
+            if (res.ok) {
+                return res.blob();
+            }
+        } catch (error) {}
+    }
+
     protected async prepareRequestSpec(
         method: string,
         url: string,
