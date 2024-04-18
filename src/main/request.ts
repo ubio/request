@@ -135,9 +135,9 @@ export class Request {
         });
     }
 
-    async sendBlob(method: string, url: string, contentType: string, options: RequestOptions = {}) {
+    async getBlob(url: string, contentType: string, options: RequestOptions = {}) {
         const { body, query, headers } = options;
-        const res = await this.send(method, url, {
+        const res = await this.send('get', url, {
             headers: {
                 'content-type': contentType,
                 ...headers,
