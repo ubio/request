@@ -135,11 +135,11 @@ export class Request {
         });
     }
 
-    async getFile(url: string, type: string, options: RequestOptions = {}) {
+    async sendBlob(method: string, url: string, contentType: string, options: RequestOptions = {}) {
         const { body, query, headers } = options;
-        const res = await this.send('get', url, {
+        const res = await this.send(method, url, {
             headers: {
-                'content-type': type,
+                'content-type': contentType,
                 ...headers,
             },
             query,
@@ -149,9 +149,8 @@ export class Request {
         if (status === 204 || res.headers.get('content-length') === '0') {
             return null;
         }
-        if (res.ok) {
-            return res.blob();
-        }
+
+        return await res.blob();
     }
 
     protected async prepareRequestSpec(
