@@ -135,6 +135,24 @@ export class Request {
         });
     }
 
+    async getBlob(url: string, contentType: string, options: RequestOptions = {}) {
+        const { body, query, headers } = options;
+        const res = await this.send('get', url, {
+            headers: {
+                'content-type': contentType,
+                ...headers,
+            },
+            query,
+            body: body ? JSON.stringify(body) : null,
+        });
+        const { status } = res;
+        if (status === 204 || res.headers.get('content-length') === '0') {
+            return null;
+        }
+
+        return await res.blob();
+    }
+
     protected async prepareRequestSpec(
         method: string,
         url: string,
