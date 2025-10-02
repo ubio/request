@@ -84,6 +84,27 @@ describe('Request', () => {
             assert.strictEqual(thrownError.details.status, 504);
         });
 
+        it('retry if retryOnError returns true', async () => {
+            let thrownError: any;
+            const fetch = fetchMock({ status: 500 });
+            const request = new Request({
+                fetch,
+                retryAttempts,
+                retryDelay: 0,
+                retryDelayIncrement: 10,
+                retryStatusCodes: [504],
+                retryOnError: err => {
+                    err.message = 'should-retry';
+                    return true;
+                },
+            });
+            request.onRetry = err => { thrownError = err; };
+            await request.send('get', 'http://example.com').catch(() => {});
+            assert.ok(thrownError);
+            assert.strictEqual(thrownError.message, 'should-retry');
+            assert.strictEqual(thrownError.details.status, 500);
+        });
+
     });
 
     describe('mergeHeaders', () => {

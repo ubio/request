@@ -108,7 +108,7 @@ export class Request {
                 const status = err.details?.status;
                 const statusText = err.details?.statusText;
                 const info: RequestDebugInfo = { method, url, headers: options.headers ?? {}, status, statusText };
-                const retry = shouldRetry || NETWORK_ERRORS.includes(err.code);
+                const retry = shouldRetry || NETWORK_ERRORS.includes(err.code) || this.config.retryOnError?.(err);
                 if (retry) {
                     lastError = err;
                     lastInfo = info;
