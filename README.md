@@ -28,7 +28,9 @@ const response = await request.post({
 ```
 
 ## Request Options
+
 all options are optional, values used below example are default values.
+
 ```ts
 const request = new Request({
     // The base url
@@ -64,6 +66,9 @@ const request = new Request({
 
     // callback function which will be called on error
     onError: () => {},
+
+    // handler on error to evaluate whether it should retry
+    handleShouldRetry: () => false
 });
 
 ```
