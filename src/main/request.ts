@@ -27,6 +27,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     retryDelayIncrement: 500,
     retryStatusCodes: [429, 502, 503, 504],
     authInvalidateStatusCodes: [401, 403],
+    handleShouldRetry: () => false,
     headers: {},
     fetch,
 };
@@ -108,7 +109,7 @@ export class Request {
                 const status = err.details?.status;
                 const statusText = err.details?.statusText;
                 const info: RequestDebugInfo = { method, url, headers: options.headers ?? {}, status, statusText };
-                const retry = shouldRetry || NETWORK_ERRORS.includes(err.code) || this.config.retryOnError?.(err);
+                const retry = shouldRetry || NETWORK_ERRORS.includes(err.code) || this.config.handleShouldRetry?.(err);
                 if (retry) {
                     lastError = err;
                     lastInfo = info;

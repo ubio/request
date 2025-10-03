@@ -28,7 +28,7 @@ export interface RequestConfig {
     authInvalidateStatusCodes: number[];
     headers: RequestHeaders;
     fetch: Fetch;
-    retryOnError?: (error: Error) => boolean;
+    handleShouldRetry?: (error: Error) => boolean;
 }
 
 export interface Fetch {
